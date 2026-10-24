@@ -104,7 +104,8 @@ function fakeElement(id) {
     return el;
 }
 
-function loadApp({ storage = {} } = {}) {
+// quiet: silence console.warn, for tests that trigger an expected warning
+function loadApp({ storage = {}, quiet = false } = {}) {
     const elements = {};
     const document = {
         getElementById: (id) => (elements[id] ||= fakeElement(id)),
@@ -115,7 +116,7 @@ function loadApp({ storage = {} } = {}) {
     };
     const store = { ...storage };
     const sandbox = {
-        console,
+        console: quiet ? { ...console, warn() {} } : console,
         document,
         localStorage: {
             getItem: (k) => (k in store ? store[k] : null),
