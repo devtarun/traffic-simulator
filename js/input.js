@@ -1,9 +1,7 @@
 // Editing roads with the pointer, the viewport, and the Snap and Reset buttons
 
 function connect(a, b) {
-  if (a === null || a === b) return;
-  const exists = lines.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
-  if (!exists) lines.push([a, b, roadLanes]);
+  if (a !== null) addLine(a, b, roadLanes);
 }
 
 // Removes point i and its lines, shifting later indices down to match
@@ -26,22 +24,34 @@ function prune() {
   }
 }
 
-// Where a click at p lands: an existing point within HIT px if there is one,
-// otherwise, with snapping on, p moved onto the horizontal or vertical
-// through last when the road from last is within SNAP_ANGLE of it
+// Where a click at p lands: an existing point within HIT px if there is one.
+// Otherwise, with snapping on, p is moved onto the horizontal or vertical
+// through last when the road from last is within SNAP_ANGLE of it. Then, if
+// that lands on an existing road, it joins the road there: `split` is the
+// line to split at the new point.
 function target(p) {
   const i = hitTest(p);
   if (i !== null) return { p: points[i], i };
-  if (!snap || last === null) return { p, i: null };
-  const o = points[last];
-  const dx = Math.abs(p.x - o.x), dy = Math.abs(p.y - o.y);
-  const off = Math.atan2(Math.min(dx, dy), Math.max(dx, dy)) * 180 / Math.PI;
-  if (off > SNAP_ANGLE) return { p, i: null };
-  const q = dx > dy ? { x: p.x, y: o.y } : { x: o.x, y: p.y };
-  // Snapping can land on or near a point the raw position missed: reuse it,
-  // rather than stacking a new point (and a duplicate road) on top of it
-  const j = hitTest(q);
-  return j !== null ? { p: points[j], i: j } : { p: q, i: null };
+  let q = p, axis = null;
+  if (snap && last !== null) {
+    const o = points[last];
+    const dx = Math.abs(p.x - o.x), dy = Math.abs(p.y - o.y);
+    const off = Math.atan2(Math.min(dx, dy), Math.max(dx, dy)) * 180 / Math.PI;
+    if (off <= SNAP_ANGLE) {
+      axis = dx > dy ? 'x' : 'y';
+      q = axis === 'x' ? { x: p.x, y: o.y } : { x: o.x, y: p.y };
+      // Snapping can land on or near a point the raw position missed: reuse it,
+      // rather than stacking a new point (and a duplicate road) on top of it
+      const j = hitTest(q);
+      if (j !== null) return { p: points[j], i: j };
+    }
+  }
+  const road = roadAt(q, axis);
+  if (road) {
+    const j = hitTest(road.p);
+    return j !== null ? { p: points[j], i: j } : { p: road.p, i: null, split: road.line };
+  }
+  return { p: q, i: null };
 }
 
 // Road type menu, opened by right clicking empty canvas. The chosen type
@@ -123,9 +133,13 @@ canvas.addEventListener('pointerup', e => {
     selectedBox = selectedCar ? null : boxAt(pos(e));
     if (selectedCar || selectedBox) { render(); return; }
   }
-  let { p, i } = target(pos(e));
-  if (i === null) { points.push(p); i = points.length - 1; }
+  let { p, i, split } = target(pos(e));
+  if (i === null) {
+    points.push(p); i = points.length - 1;
+    if (split != null) splitLine(split, i); // joined onto a road: T-junction
+  }
   connect(last, i);
+  junctionize(); // the new road may cross others
   last = i;
   pointer = points[i];
   render();

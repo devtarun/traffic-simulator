@@ -9,6 +9,7 @@ function load() {
     lines.push(...s.lines.map(([a, b, lanes]) => [a, b, lanes ?? MAX_LANES]));
     last = s.last;
     if (s.view) Object.assign(view, s.view); // older saves have no view
+    junctionize(); // older saves may have roads crossing without a junction
   } catch (err) {
     console.warn('Could not load saved canvas', err);
   }
