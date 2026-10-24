@@ -9,20 +9,35 @@
 // box, and, with no traffic light, when no car from another approach is in
 // the box or arrived at its stop line first.
 
-const MIN_GAP = 4; // px between bumpers when stopped
-const HEADWAY = 0.6; // s: a car's speed is at most its gap / HEADWAY
-const ACCEL = 45,
+import { LANE_W, lines, points, pos, roadWidth, view } from "./state.js";
+import { line, roads } from "./roads.js";
+import {
+    ROAD_SPEED,
+    depart,
+    laneKey,
+    lanePoint,
+    lineLength,
+    pieceAt,
+} from "./traffic.js";
+import { junctionPhases, lightAt, lightFor, lightGreen } from "./lights.js";
+import { CAR_LEN } from "./vehicles.js";
+import { showGridlockToast } from "./inspect.js";
+import { target } from "./input.js";
+
+export const MIN_GAP = 4; // px between bumpers when stopped
+export const HEADWAY = 0.6; // s: a car's speed is at most its gap / HEADWAY
+export const ACCEL = 45,
     DECEL = 180; // px/s²
-const DECEL_COMFORT = 90; // px/s²: how hard a car brakes for a junction it may not enter
-const LOOKAHEAD = 90; // px: how far ahead into the next lane a car looks for traffic
-const BLOCK_TIME = 6; // s of standstill at a junction before it counts as blocked
-const GRIDLOCK_TIME = 15; // s of standstill before it counts as gridlocked
-let simTime = 0;
+export const DECEL_COMFORT = 90; // px/s²: how hard a car brakes for a junction it may not enter
+export const LOOKAHEAD = 90; // px: how far ahead into the next lane a car looks for traffic
+export const BLOCK_TIME = 6; // s of standstill at a junction before it counts as blocked
+export const GRIDLOCK_TIME = 15; // s of standstill before it counts as gridlocked
+export let simTime = 0;
 
 // Junctions of the road graph: node index -> { node, clear, lastMove,
 // blocked, gridlock }. clear is half the widest road there plus a margin;
 // lastMove is when a car waiting at it or in its box last moved.
-function makeJunctions(adj) {
+export function makeJunctions(adj) {
     const out = new Map();
     adj.forEach((roads, node) => {
         if (roads.length < 3) return;
@@ -45,7 +60,7 @@ function makeJunctions(adj) {
 // cars behind it on that lane see it.
 // The same goes for a car pulling out of a driveway, once it has started
 // moving: it's counted on the lane it's joining, so traffic there slows for it.
-function laneSpot(car) {
+export function laneSpot(car) {
     const i = pieceAt(car),
         piece = car.pieces[i - 1];
     if (piece.kind === "road")
@@ -66,7 +81,7 @@ function laneSpot(car) {
 
 // Index of the first road piece at or after pieces[from] (a turn is several
 // short curve pieces), or -1 if there is none
-function nextRoad(car, from) {
+export function nextRoad(car, from) {
     for (let j = from; j < car.pieces.length; j++)
         if (car.pieces[j].kind === "road") return j;
         else if (car.pieces[j].kind !== "turn") return -1;
@@ -75,7 +90,7 @@ function nextRoad(car, from) {
 
 // Direction of travel along lane `key` as an angle, ignoring which way
 // (0..π), so opposite approaches to a junction share an axis
-function laneAxis(key) {
+export function laneAxis(key) {
     const [k, dir] = key.split(":").map(Number);
     const p = points[lines[k][0]],
         q = points[lines[k][1]];
@@ -85,7 +100,7 @@ function laneAxis(key) {
 
 // Whether two approaches can use a junction at the same time: same road and
 // direction, or straight opposite each other (within 30°)
-function compatible(keyA, keyB) {
+export function compatible(keyA, keyB) {
     const [ka, da] = keyA.split(":"),
         [kb, db] = keyB.split(":");
     if (ka === kb && da === db) return true;
@@ -95,7 +110,7 @@ function compatible(keyA, keyB) {
 
 // Whether car may enter junction j now. `approach` is its lane into the box,
 // exit = { key, start } its lane out; stopDist is how far it is from the stop line.
-function canEnter(car, j, approach, exit, lanes, cars, stopDist) {
+export function canEnter(car, j, approach, exit, lanes, cars, stopDist) {
     // Don't block the box: the exit needs room for this car past the box, and
     // no other car already in the box may be heading for the same exit. Like
     // real drivers, though, a car goes if the car in the way is still moving,
@@ -130,7 +145,7 @@ function canEnter(car, j, approach, exit, lanes, cars, stopDist) {
     );
 }
 
-function arrive(car) {
+export function arrive(car) {
     car.at = car.to;
     car.path = null;
     car.box = car.waitingAt = null;
@@ -139,7 +154,7 @@ function arrive(car) {
 }
 
 // Advances the simulation by dt seconds
-function stepSim(t, dt) {
+export function stepSim(t, dt) {
     simTime += dt;
     t.cars.forEach((car) => {
         car.prevS = car.s;
@@ -372,11 +387,11 @@ function stepSim(t, dt) {
 }
 
 // 'line:dir' part of a lane key: a road in one direction
-function roadDir(key) {
+export function roadDir(key) {
     return key.split(":").slice(0, 2).join(":");
 }
 
-const FLOW_WINDOW = 60; // s of history for throughput
+export const FLOW_WINDOW = 60; // s of history for throughput
 
 // Live statistics for line k in direction dir:
 // - cars: on it now; stopped: of those, stopped for a moment
@@ -385,7 +400,7 @@ const FLOW_WINDOW = 60; // s of history for throughput
 // - queue: length in px of the longest run of stopped cars
 // - wait: average time the stopped cars have been stopped
 // - level: 'Free', 'Busy', 'Congested' or 'Jammed'
-function roadStats(t, k, dir) {
+export function roadStats(t, k, dir) {
     const id = k + ":" + dir;
     const events = (t.flow && t.flow.get(id)) || [];
     while (events.length && events[0] < simTime - FLOW_WINDOW) events.shift();
@@ -430,7 +445,7 @@ function roadStats(t, k, dir) {
     };
 }
 
-const LEVEL_COLORS = {
+export const LEVEL_COLORS = {
     Free: "60, 200, 90",
     Busy: "245, 185, 30",
     Congested: "245, 120, 30",
@@ -439,7 +454,7 @@ const LEVEL_COLORS = {
 
 // Selected road: a light blue outline along both edges, and each direction's
 // lanes tinted by its congestion level (between the junctions at its ends)
-function drawRoadFlow(c, t, k) {
+export function drawRoadFlow(c, t, k) {
     const [a, b, lanes] = lines[k];
     const p = points[a],
         q = points[b],
@@ -475,7 +490,7 @@ function drawRoadFlow(c, t, k) {
 
 // Queues: a translucent red band under each run of two or more stopped cars
 // (or a single car held at a stop line) in a lane
-function drawQueues(c, t) {
+export function drawQueues(c, t) {
     if (!t.lanes) return;
     c.lineCap = "round";
     c.strokeStyle = "rgba(255, 60, 40, 0.55)";
@@ -515,7 +530,7 @@ function drawQueues(c, t) {
 
 // Blocked junctions get a pulsing amber ring, gridlocked ones a red ring,
 // each with a "!" badge. Sizes are partly in screen px so they read at any zoom.
-function drawJunctionAlerts(c, t) {
+export function drawJunctionAlerts(c, t) {
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
     t.junctions.forEach((j) => {
         if (!j.blocked) return;
@@ -545,7 +560,7 @@ function drawJunctionAlerts(c, t) {
 
 // Shows a gridlock toast (bottom right) each time a junction becomes
 // gridlocked; `notified` stops repeats until that gridlock clears
-function updateAlerts(t) {
+export function updateAlerts(t) {
     t.junctions.forEach((j) => {
         if (j.gridlock && !j.notified) showGridlockToast(points[j.node]);
         j.notified = j.gridlock;

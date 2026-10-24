@@ -97,12 +97,12 @@ test("roadAt projects onto the road under a point, away from its ends", () => {
 test("roadAt joins where the angle-snap axis meets the road, and skips roads at last", () => {
     const app = loadApp();
     app.road(2, [0, 100], [400, 100]);
-    app.run("points.push({ x: 150, y: 0 }); last = 2");
+    app.run("points.push({ x: 150, y: 0 }); game.last = 2");
     // snapped vertically from last (150, 0): join at x = 150 even though the pointer is at 158
     assert.deepEqual(plain(app.run("roadAt({ x: 158, y: 104 }, 'y')")), {
         p: { x: 150, y: 100 },
         line: 0,
     });
-    app.run("last = 0"); // drawing from the road's own end
+    app.run("game.last = 0"); // drawing from the road's own end
     assert.equal(app.run("roadAt({ x: 150, y: 100 }, null)"), null);
 });

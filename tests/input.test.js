@@ -20,7 +20,7 @@ test("clicks build nothing until the Road tool is on", () => {
     app.click(300, 100);
     assert.deepEqual(count(app), { points: 0, lines: 0 });
     app.elements["mode-road"].click();
-    assert.equal(app.run("roadEnabled"), true);
+    assert.equal(app.run("game.roadEnabled"), true);
     app.click(100, 100);
     app.click(300, 100);
     assert.deepEqual(count(app), { points: 2, lines: 1 });
@@ -28,7 +28,7 @@ test("clicks build nothing until the Road tool is on", () => {
 
 test("a chain of clicks builds connected roads of the chosen type", () => {
     const app = roadApp();
-    app.run("roadLanes = 1");
+    app.run("game.roadLanes = 1");
     app.click(100, 100);
     app.click(400, 100);
     app.click(400, 400);
@@ -36,7 +36,7 @@ test("a chain of clicks builds connected roads of the chosen type", () => {
         [0, 1, 1],
         [1, 2, 1],
     ]);
-    assert.equal(app.run("last"), 2);
+    assert.equal(app.run("game.last"), 2);
 });
 
 test("clicking back along an existing road doesn't duplicate it", () => {
@@ -53,7 +53,7 @@ test("angle snapping straightens near-horizontal roads and reuses points it land
     app.click(100, 100);
     app.click(300, 108); // within 10° of horizontal
     assert.deepEqual(plain(app.run("points[1]")), { x: 300, y: 100 });
-    app.run("last = null");
+    app.run("game.last = null");
     app.click(100, 100);
     app.click(300, 130); // snaps exactly onto (300, 100): reuse it, no stacked point
     assert.deepEqual(count(app), { points: 2, lines: 1 });
@@ -62,7 +62,7 @@ test("angle snapping straightens near-horizontal roads and reuses points it land
 test("snapping can be turned off from the settings", () => {
     const app = roadApp();
     app.elements.snap.click();
-    assert.equal(app.run("snap"), false);
+    assert.equal(app.run("game.snap"), false);
     assert.equal(app.elements.snap.textContent, "Snap: off");
     app.click(100, 100);
     app.click(300, 108);
@@ -73,7 +73,7 @@ test("clicking on a road joins onto it as a T-junction", () => {
     const app = roadApp();
     app.click(100, 300);
     app.click(700, 300);
-    app.run("last = null");
+    app.run("game.last = null");
     app.click(400, 100);
     app.click(406, 309); // on the road, slightly off its center line
     const j = app.run("points.findIndex((p) => p.x === 400 && p.y === 300)");
@@ -88,7 +88,7 @@ test("right-click on empty ground ends the road and opens the road type menu", (
     const app = roadApp();
     app.click(100, 100);
     app.rightClick(600, 600);
-    assert.equal(app.run("last"), null);
+    assert.equal(app.run("game.last"), null);
     assert.equal(app.elements["road-menu"].hidden, false);
     assert.deepEqual(count(app), { points: 0, lines: 0 }); // the lone first point is pruned
     // a left press while the menu is open only closes it
@@ -102,7 +102,7 @@ test("right-click on a point removes it, and any points it leaves without roads"
     app.click(100, 100);
     app.click(300, 100);
     app.click(300, 300);
-    app.run("last = null");
+    app.run("game.last = null");
     app.rightClick(300, 100); // the middle point: both neighbours are stranded
     assert.deepEqual(count(app), { points: 0, lines: 0 });
 });
@@ -111,7 +111,7 @@ test("cancelling the removal confirmation keeps the point", () => {
     const app = roadApp();
     app.click(100, 100);
     app.click(300, 100);
-    app.run("last = null; confirm = () => false");
+    app.run("game.last = null; confirm = () => false");
     app.rightClick(300, 100);
     assert.deepEqual(count(app), { points: 2, lines: 1 });
 });
@@ -119,11 +119,11 @@ test("cancelling the removal confirmation keeps the point", () => {
 test("remove() renumbers later points in roads and last", () => {
     const app = loadApp();
     app.run(
-        "points.push({ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }); lines.push([1, 2, 2]); last = 2",
+        "points.push({ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }); lines.push([1, 2, 2]); game.last = 2",
     );
     app.run("remove(0)");
     assert.deepEqual(plain(app.run("lines")), [[0, 1, 2]]);
-    assert.equal(app.run("last"), 1);
+    assert.equal(app.run("game.last"), 1);
 });
 
 test("with Road off, clicks select cars and buildings instead of building", () => {
@@ -131,10 +131,10 @@ test("with Road off, clicks select cars and buildings instead of building", () =
     app.road(2, [100, 300], [900, 300]);
     const box = app.run("getScene().boxes[0]");
     app.click(box.c.x, box.c.y);
-    assert.equal(app.run("selectedBox"), box);
+    assert.equal(app.run("game.selectedBox"), box);
     assert.deepEqual(count(app), { points: 2, lines: 1 });
     app.rightClick(5, 5); // right-click just deselects
-    assert.equal(app.run("selectedBox"), null);
+    assert.equal(app.run("game.selectedBox"), null);
 });
 
 test("with Traffic on, clicking a junction toggles its signal", () => {
@@ -148,7 +148,7 @@ test("with Traffic on, clicking a junction toggles its signal", () => {
         app.run("lightAt(points.findIndex((p) => p.x === 400 && p.y === 300))"),
     );
     assert.equal(
-        app.run("selectedJunction"),
+        app.run("game.selectedJunction"),
         app.run("points.findIndex((p) => p.x === 400 && p.y === 300)"),
     );
     app.click(400, 300);
@@ -199,7 +199,7 @@ test("the speed button cycles normal, 2× and 3×", () => {
     const seen = [];
     for (let i = 0; i < 3; i++) {
         speed.click();
-        seen.push([app.run("simSpeed"), speed.textContent]);
+        seen.push([app.run("game.simSpeed"), speed.textContent]);
     }
     assert.deepEqual(seen, [
         [2, "❯❯"],
@@ -221,24 +221,24 @@ test("traffic + and − change the traffic level", () => {
 
 test("the settings menu pauses while open and restores the previous state", () => {
     const app = loadApp();
-    app.run("paused = false");
+    app.run("game.paused = false");
     app.elements.settings.click();
     assert.equal(app.elements["settings-menu"].hidden, false);
-    assert.equal(app.run("paused"), true);
+    assert.equal(app.run("game.paused"), true);
     app.elements.resume.click();
     assert.equal(app.elements["settings-menu"].hidden, true);
-    assert.equal(app.run("paused"), false);
-    app.run("paused = true");
+    assert.equal(app.run("game.paused"), false);
+    app.run("game.paused = true");
     app.elements.settings.click();
     app.windowEvent("keydown", { key: "Escape" });
-    assert.equal(app.run("paused"), true); // was paused before, stays paused
+    assert.equal(app.run("game.paused"), true); // was paused before, stays paused
 });
 
 test("Reset clears roads and signals and closes the settings", () => {
     const app = loadApp();
     app.road(2, [100, 300], [700, 300]);
     app.road(2, [400, 100], [400, 500]);
-    app.run("getScene(); toggleLight([...traffic.junctions.keys()][0])");
+    app.run("getScene(); toggleLight([...game.traffic.junctions.keys()][0])");
     app.elements.settings.click();
     app.elements.reset.click();
     assert.deepEqual(count(app), { points: 0, lines: 0 });

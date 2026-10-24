@@ -34,7 +34,7 @@ test("junctionPhases pairs opposite approaches", () => {
     const sizes = (x, y) =>
         plain(
             app.run(
-                `traffic.junctions.get(${nodeAt(app, x, y)}).phases.map((p) => p.length).sort()`,
+                `game.traffic.junctions.get(${nodeAt(app, x, y)}).phases.map((p) => p.length).sort()`,
             ),
         );
     assert.deepEqual(sizes(200, 200), [2, 2]); // + : two straight-through pairs
@@ -50,7 +50,7 @@ test("lightCycle runs green, amber, all-red for each phase in turn", () => {
     const at = (t) =>
         plain(
             app.run(
-                `simTime = ${t}; lightCycle(lightAt(${j}), traffic.junctions.get(${j}))`,
+                `simTime = ${t}; lightCycle(lightAt(${j}), game.traffic.junctions.get(${j}))`,
             ),
         );
     assert.deepEqual(at(0), { phase: 0, state: "green", left: 10 });
@@ -67,7 +67,7 @@ test("lightFor gives an approach its phase's state, and red otherwise", () => {
     app.run(`toggleLight(${j}); lightAt(${j}).start = 0; simTime = 1`);
     const states = plain(
         app.run(
-            `(() => { const J = traffic.junctions.get(${j}); return J.phases.map((ph) => ph.map((a) => lightFor(lightAt(${j}), J, a.id + ':0'))); })()`,
+            `(() => { const J = game.traffic.junctions.get(${j}); return J.phases.map((ph) => ph.map((a) => lightFor(lightAt(${j}), J, a.id + ':0'))); })()`,
         ),
     );
     assert.deepEqual(states, [
@@ -84,7 +84,7 @@ test("lightGreen allows green, and amber only when too close to stop", () => {
     );
     const go = (t, phase, stopDist, v) =>
         app.run(
-            `(() => { simTime = ${t}; const J = traffic.junctions.get(${j}); return lightGreen(lightAt(${j}), J, J.phases[${phase}][0].id + ':0', ${stopDist}, ${v}); })()`,
+            `(() => { simTime = ${t}; const J = game.traffic.junctions.get(${j}); return lightGreen(lightAt(${j}), J, J.phases[${phase}][0].id + ':0', ${stopDist}, ${v}); })()`,
         );
     assert.equal(go(1, 0, 50, 40), true); // green
     assert.equal(go(1, 1, 50, 40), false); // red
@@ -94,6 +94,6 @@ test("lightGreen allows green, and amber only when too close to stop", () => {
 
 test("drawLights draws every signal without errors", () => {
     const app = app2();
-    app.run("traffic.junctions.forEach((J) => toggleLight(J.node))");
-    assert.doesNotThrow(() => app.run("drawLights(ctx, traffic)"));
+    app.run("game.traffic.junctions.forEach((J) => toggleLight(J.node))");
+    assert.doesNotThrow(() => app.run("drawLights(ctx, game.traffic)"));
 });

@@ -1,13 +1,28 @@
 // End-to-end test of the built page (npm run build → dist/, made by Vite): the
 // bundled, minified app.js must work in a real browser. Its names are
 // obfuscated and nothing is global, so this test checks behaviour through the
-// page only. Vite's module script runs in strict mode, which this also covers.
+// page only. The build is served by Vite's preview server, as
+// `npm run preview` would.
 
+const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 const { viteBuild } = require("../tests/helpers/build");
 
+const PREVIEW_PORT = 8092;
+let server;
+
 test.beforeAll(async () => {
-    await viteBuild(); // writes dist/, which the test server also serves
+    await viteBuild(); // writes dist/
+    const { preview } = await import("vite");
+    server = await preview({
+        configFile: path.join(__dirname, "..", "vite.config.mjs"),
+        logLevel: "silent",
+        preview: { port: PREVIEW_PORT, strictPort: true },
+    });
+});
+
+test.afterAll(async () => {
+    await server?.close();
 });
 
 test("the built page starts a game, builds roads and opens the settings", async ({
@@ -15,7 +30,7 @@ test("the built page starts a game, builds roads and opens the settings", async 
 }) => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto("/dist/index.html");
+    await page.goto(`http://127.0.0.1:${PREVIEW_PORT}/`);
 
     await expect(page.locator("#start-screen")).toBeVisible();
     await page.click("#fresh-game");

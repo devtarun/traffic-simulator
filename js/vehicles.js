@@ -1,17 +1,20 @@
 // Drawing vehicles: small top-down cars with headlights, and brake lights
 // when they're slowing or stopped
 
-const CAR_LEN = 8,
+import { game } from "./state.js";
+import { pathPosAt, renderCarPos } from "./traffic.js";
+
+export const CAR_LEN = 8,
     CAR_WID = 4.5; // world px
 
 // Use the path tangent around the blended position instead of easing toward
 // each segment's heading. Sampling across nearby segments smooths short
 // junction connectors without angle wraparound or accumulated rotation.
-function carHeading(car) {
+export function carHeading(car) {
     const s =
         car.prevS === undefined
             ? car.s
-            : car.prevS + (car.s - car.prevS) * renderAlpha;
+            : car.prevS + (car.s - car.prevS) * game.renderAlpha;
     const before = pathPosAt(car, Math.max(0, s - CAR_LEN / 2));
     const after = pathPosAt(car, Math.min(car.len, s + CAR_LEN / 2));
     if (Math.hypot(after.x - before.x, after.y - before.y) < 1e-6) return 0;
@@ -21,8 +24,8 @@ function carHeading(car) {
 // Draws every driving car on c (in world coordinates): all headlight beams
 // first, so a beam never covers the car ahead, then the bodies. Cars parked
 // inside a building aren't drawn.
-function drawCars(c) {
-    const driving = traffic.cars
+export function drawCars(c) {
+    const driving = game.traffic.cars
         .filter((car) => car.path)
         .map((car) => ({ car, p: renderCarPos(car), h: carHeading(car) }));
     const half = CAR_LEN / 2;

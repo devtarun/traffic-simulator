@@ -1,13 +1,15 @@
 // Drawing roads
 
-function line(a, b, c = ctx) {
+import { LANE_W, ctx, roadWidth } from "./state.js";
+
+export function line(a, b, c = ctx) {
     c.beginPath();
     c.moveTo(a.x, a.y);
     c.lineTo(b.x, b.y);
     c.stroke();
 }
 
-function polyline(pts, c, closed) {
+export function polyline(pts, c, closed) {
     c.beginPath();
     pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
     if (closed) c.closePath();
@@ -19,7 +21,7 @@ function polyline(pts, c, closed) {
 // corner or bend is one road rather than two. Chains end at junctions (three
 // or more roads), dead ends, and where the road type changes. Each chain is
 // { pts, lanes, closed }, closed when it loops back to its start.
-function chains(segs) {
+export function chains(segs) {
     const key = (p) => p.x + "," + p.y;
     const at = new Map(); // point key -> indices of segments there
     segs.forEach(([p, q], i) =>
@@ -77,7 +79,7 @@ function chains(segs) {
 
 // pts with distance t0 cut off the start and t1 off the end, or null if
 // nothing is left
-function cutPath(pts, t0, t1) {
+export function cutPath(pts, t0, t1) {
     const len = [0];
     for (let i = 1; i < pts.length; i++)
         len.push(
@@ -103,7 +105,7 @@ function cutPath(pts, t0, t1) {
 // mitred corners so the shifted line stays parallel through bends. On the
 // outside of turns sharper than a right angle the miter would poke out past
 // the road's edge, so those corners are bevelled (two points) instead.
-function offsetPath(pts, off, closed) {
+export function offsetPath(pts, off, closed) {
     const n = pts.length;
     const unit = (a, b) => {
         const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
@@ -131,14 +133,14 @@ function offsetPath(pts, off, closed) {
     });
 }
 
-const INNER_R = 10; // radius of the inner kerb at a bend, world px
+export const INNER_R = 10; // radius of the inner kerb at a bend, world px
 
 // How far before and after a bend's corner its curve starts along the road's
 // center line, for a road `lanes` wide turning by theta (radians): the
 // tangent length of an arc whose inner kerb has radius INNER_R, kept under
 // half of each side's length (len0, len1). Cars use it too (curveTurns() in
 // traffic.js), so their turns follow the road's curve.
-function bendTangent(lanes, theta, len0, len1) {
+export function bendTangent(lanes, theta, len0, len1) {
     const R = roadWidth(lanes) / 2 + INNER_R;
     return Math.min(R * Math.tan(theta / 2), 0.45 * len0, 0.45 * len1);
 }
@@ -147,7 +149,7 @@ function bendTangent(lanes, theta, len0, len1) {
 // corner as control, from bendTangent() before it to the same after), so a
 // thick stroke along it has rounded inner as well as outer edges. Ends of an
 // open path stay put.
-function filletPath(pts, lanes, closed) {
+export function filletPath(pts, lanes, closed) {
     const n = pts.length,
         out = [];
     pts.forEach((p, i) => {
@@ -184,7 +186,7 @@ function filletPath(pts, lanes, closed) {
 // continuous road, and each chain's bends are rounded (filletPath()). Each
 // pass is drawn for every road before the next, so overlapping roads merge
 // into clean junctions instead of one road's edge cutting across another.
-function roads(c, segs) {
+export function roads(c, segs) {
     const runs = chains(segs).map((r) => ({
         ...r,
         pts: filletPath(r.pts, r.lanes, r.closed),

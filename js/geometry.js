@@ -1,7 +1,7 @@
 // Seeded randomness and geometry for oriented boxes and segments
 
 // Seeded PRNG (mulberry32), so a road's boxes are the same on every render
-function rng(seed) {
+export function rng(seed) {
     return () => {
         seed = (seed + 0x6d2b79f5) | 0;
         let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -10,7 +10,7 @@ function rng(seed) {
     };
 }
 
-function hash(...nums) {
+export function hash(...nums) {
     let h = 2166136261;
     nums.forEach((n) => {
         h = Math.imul(h ^ Math.round(n), 16777619);
@@ -20,13 +20,13 @@ function hash(...nums) {
 
 // Boxes are oriented rectangles: center c, unit axes u (along the road) and
 // n (across it), half-sizes hw and hd. local() maps a point into that frame.
-function local(b, p) {
+export function local(b, p) {
     const dx = p.x - b.c.x,
         dy = p.y - b.c.y;
     return { x: dx * b.u.x + dy * b.u.y, y: dx * b.n.x + dy * b.n.y };
 }
 
-function corners(b) {
+export function corners(b) {
     return [
         [1, 1],
         [1, -1],
@@ -38,7 +38,7 @@ function corners(b) {
     }));
 }
 
-function pointSegDist(p, a, b) {
+export function pointSegDist(p, a, b) {
     const dx = b.x - a.x,
         dy = b.y - a.y,
         l2 = dx * dx + dy * dy;
@@ -49,7 +49,7 @@ function pointSegDist(p, a, b) {
 }
 
 // Distance from segment a–c to box b (0 if they intersect)
-function segBoxDist(b, a, c) {
+export function segBoxDist(b, a, c) {
     const la = local(b, a),
         lc = local(b, c);
     // Liang–Barsky clip of the segment against the box
@@ -86,7 +86,7 @@ function segBoxDist(b, a, c) {
 }
 
 // Separating axis test for two boxes, with a margin between them
-function boxesOverlap(a, b, margin) {
+export function boxesOverlap(a, b, margin) {
     return [a.u, a.n, b.u, b.n].every((ax) => {
         const proj = (k) => k.x * ax.x + k.y * ax.y;
         const pa = corners(a).map(proj),

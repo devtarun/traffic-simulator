@@ -1,6 +1,6 @@
 // End-to-end tests: Playwright drives the real page in Chrome.
-// `npm run test:e2e` starts a static server (no caching, so tests always get
-// the current scripts) and runs everything in e2e/.
+// `npm run test:e2e` starts the Vite dev server (it serves the modules
+// straight from js/) and runs everything in e2e/.
 
 const { defineConfig } = require("@playwright/test");
 
@@ -17,7 +17,7 @@ module.exports = defineConfig({
         viewport: { width: 1280, height: 800 },
     },
     webServer: {
-        command: `npx http-server . -a 127.0.0.1 -p ${PORT} -c-1 -s`,
+        command: `npx vite --port ${PORT} --strictPort --logLevel warn`,
         url: `http://127.0.0.1:${PORT}/index.html`,
         reuseExistingServer: !process.env.CI,
     },

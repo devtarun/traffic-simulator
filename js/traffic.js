@@ -1,12 +1,30 @@
 // Traffic: the road graph, routes, and cars moving along them
 
+import {
+    KEEP,
+    LANE_W,
+    MAX_LANES,
+    ROAD_WIDTH,
+    game,
+    lines,
+    points,
+    pos,
+    roadWidth,
+    view,
+} from "./state.js";
+import { pointSegDist, segBoxDist } from "./geometry.js";
+import { bendTangent, line } from "./roads.js";
+import { getScene } from "./layout.js";
+import { MIN_GAP, laneSpot, makeJunctions } from "./sim.js";
+import { CAR_LEN } from "./vehicles.js";
+
 // The road network is a graph: points are nodes and lines are edges, so cars
 // can only turn where roads share a point. Each car belongs to a house and
 // shuttles between it and offices it can reach, pausing inside each building.
 
-const CARS_PER_HOUSE = 2;
-const MAX_CARS = 250;
-const CAR_COLORS = [
+export const CARS_PER_HOUSE = 2;
+export const MAX_CARS = 250;
+export const CAR_COLORS = [
     "#e63946",
     "#f1faee",
     "#ffb703",
@@ -18,19 +36,15 @@ const CAR_COLORS = [
 ];
 // Speed multiplier by lanes each way: 4-lane roads are 1.5× as fast as
 // 2-lane. Driveways and turns at junctions go at the 2-lane speed.
-const ROAD_SPEED = { 1: 1, 2: 1.5 };
-let traffic = { adj: [], comp: [], cars: [] };
+export const ROAD_SPEED = { 1: 1, 2: 1.5 };
 // What a click while paused selected: a car (its route is shown) or a box
 // (the routes of every car driving to it are shown). At most one is set;
 // both are cleared on play and whenever traffic is rebuilt.
-let selectedCar = null;
-let selectedBox = null;
 // Road (line index) selected by a click while paused, for its flow panel;
 // like selectedJunction it stays selected through Play
-let selectedRoad = null;
 
 // The road whose asphalt covers world point p (the nearest, if several), or null
-function roadUnder(p) {
+export function roadUnder(p) {
     let best = null,
         bestDist = Infinity;
     lines.forEach(([a, b, lanes], k) => {
@@ -42,28 +56,31 @@ function roadUnder(p) {
     });
     return best;
 }
-const CAR_PICK = 8; // a click within this many screen px of a car selects it
+export const CAR_PICK = 8; // a click within this many screen px of a car selects it
 
 // The box (house or office) containing world point p, or null
-function boxAt(p) {
+export function boxAt(p) {
     return getScene().boxes.find((b) => segBoxDist(b, p, p) === 0) || null;
 }
 
 // Cars whose routes are shown: the selected car, or every car driving to the
 // selected box
-function shownCars() {
-    if (selectedCar) return selectedCar.path ? [selectedCar] : [];
-    if (selectedBox)
-        return traffic.cars.filter((car) => car.path && car.to === selectedBox);
+export function shownCars() {
+    if (game.selectedCar)
+        return game.selectedCar.path ? [game.selectedCar] : [];
+    if (game.selectedBox)
+        return game.traffic.cars.filter(
+            (car) => car.path && car.to === game.selectedBox,
+        );
     return [];
 }
 
 // The driving car nearest world point p within CAR_PICK screen px, or null.
 // Cars parked inside a building can't be picked.
-function carAt(p) {
+export function carAt(p) {
     let best = null,
         bestDist = CAR_PICK / view.scale;
-    traffic.cars.forEach((car) => {
+    game.traffic.cars.forEach((car) => {
         if (!car.path) return;
         const q = carPos(car);
         const d = Math.hypot(q.x - p.x, q.y - p.y);
@@ -75,7 +92,7 @@ function carAt(p) {
     return best;
 }
 
-function makeTraffic({ boxes }) {
+export function makeTraffic({ boxes }) {
     // adj[i]: [neighbour, length, lanes each way, line index] for each road at point i
     const adj = points.map(() => []);
     lines.forEach(([a, b, lanes], k) => {
@@ -152,7 +169,7 @@ function makeTraffic({ boxes }) {
     return t;
 }
 
-function newCar(home) {
+export function newCar(home) {
     return {
         home,
         at: home,
@@ -167,16 +184,16 @@ function newCar(home) {
 
 // Traffic level: a multiplier on the normal number of cars, set by the
 // Traffic − / + buttons in steps of TRAFFIC_STEP, kept when traffic rebuilds
-const TRAFFIC_STEP = 0.1,
+export const TRAFFIC_STEP = 0.1,
     TRAFFIC_MIN = 0.1,
     TRAFFIC_MAX = 3;
-let trafficLevel = 1;
+export let trafficLevel = 1;
 
 // Changes the traffic level by delta (clamped) and adds or removes cars to
 // match: new cars start at random homes and set off within a few seconds;
 // cars are removed parked ones first, then from the road. Returns whether
 // the level changed.
-function changeTraffic(t, delta) {
+export function changeTraffic(t, delta) {
     const level =
         Math.round(
             Math.min(TRAFFIC_MAX, Math.max(TRAFFIC_MIN, trafficLevel + delta)) *
@@ -195,14 +212,15 @@ function changeTraffic(t, delta) {
             driving = t.cars.filter((c) => c.path);
         const keep = [...parked, ...driving].slice(t.cars.length - want);
         t.cars = t.cars.filter((c) => keep.includes(c));
-        if (selectedCar && !t.cars.includes(selectedCar)) selectedCar = null;
+        if (game.selectedCar && !t.cars.includes(game.selectedCar))
+            game.selectedCar = null;
     }
     return true;
 }
 
 // Sends car from the building it's at to its next stop: home if it's at an
 // office, otherwise a random office it can reach
-function depart(t, car) {
+export function depart(t, car) {
     const to = car.at.office
         ? car.home
         : car.home.reach[Math.floor(Math.random() * car.home.reach.length)];
@@ -226,7 +244,7 @@ function depart(t, car) {
 }
 
 // Where box b's driveway meets the road's center line
-function roadPoint(b) {
+export function roadPoint(b) {
     const [p, q] = lines[b.seg].map((i) => points[i]);
     const L = Math.hypot(q.x - p.x, q.y - p.y);
     return {
@@ -235,7 +253,7 @@ function roadPoint(b) {
     };
 }
 
-function lineLength(k) {
+export function lineLength(k) {
     const [a, b] = lines[k];
     return Math.hypot(points[b].x - points[a].x, points[b].y - points[a].y);
 }
@@ -253,7 +271,7 @@ function lineLength(k) {
 //   see laneKey()); start is how far along the lane, in travel direction, the
 //   stretch begins; tail is how far before the lane's end point it stops,
 //   where a curve takes over.
-function route(t, from, to, lane) {
+export function route(t, from, to, lane) {
     const A = lines[from.seg],
         B = lines[to.seg];
     // center: the route along road center lines; info[i]: the road from
@@ -378,7 +396,7 @@ function route(t, from, to, lane) {
     return { path, speed, pieces };
 }
 
-const CURVE_STEPS = 6; // straight pieces a turn's curve is split into
+export const CURVE_STEPS = 6; // straight pieces a turn's curve is split into
 
 // Replaces each turn's sharp corner with a curve, in place. A turn joins the
 // end of one lane to the start of the next; the curve starts `radius` before
@@ -389,7 +407,7 @@ const CURVE_STEPS = 6; // straight pieces a turn's curve is split into
 // `start` grows), so lane positions stay true. At a junction the curve is
 // kept short enough to start after the stop line, so stopping and right of
 // way still happen on the straight approach. Straight-on joins are left alone.
-function curveTurns(t, path, speed, pieces) {
+export function curveTurns(t, path, speed, pieces) {
     const unit = (a, b) => {
         const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
         return { x: (b.x - a.x) / L, y: (b.y - a.y) / L, L };
@@ -494,12 +512,12 @@ function curveTurns(t, path, speed, pieces) {
 
 // Name of lane `lane` (0 = next to the center line) of line k, for travel in
 // direction dir (1 = from its first point to its second, -1 = back)
-function laneKey(k, dir, lane) {
+export function laneKey(k, dir, lane) {
     return k + ":" + dir + ":" + lane;
 }
 
 // World position at distance pos along a lane (in its travel direction)
-function lanePoint(key, pos) {
+export function lanePoint(key, pos) {
     const [k, dir, lane] = key.split(":").map(Number);
     const [a, b] =
         dir > 0 ? [lines[k][0], lines[k][1]] : [lines[k][1], lines[k][0]];
@@ -512,17 +530,17 @@ function lanePoint(key, pos) {
 }
 
 // Index i of the path piece the car is on, from path[i - 1] to path[i]
-function pieceAt(car) {
+export function pieceAt(car) {
     let i = 1;
     while (i < car.cum.length - 1 && car.cum[i] < car.s) i++;
     return i;
 }
 
-function carPos(car) {
+export function carPos(car) {
     return pathPosAt(car, car.s);
 }
 
-function pathPosAt(car, s) {
+export function pathPosAt(car, s) {
     s = Math.max(0, Math.min(car.len, s));
     const i = pieceAt({ ...car, s });
     const a = car.path[i - 1],
@@ -532,9 +550,9 @@ function pathPosAt(car, s) {
     return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
 
-function renderCarPos(car) {
+export function renderCarPos(car) {
     if (!car.path || car.prevS === undefined) return carPos(car);
-    const s = car.prevS + (car.s - car.prevS) * renderAlpha;
+    const s = car.prevS + (car.s - car.prevS) * game.renderAlpha;
     const i = pieceAt({ ...car, s });
     const a = car.path[i - 1],
         b = car.path[i];

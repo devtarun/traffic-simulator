@@ -35,8 +35,8 @@ function building(app, k, along, side = 1) {
 test("makeTraffic gives each house that can reach an office its cars", () => {
     const app = gridApp();
     const t = plain(
-        app.run(`({ homes: traffic.homes.length, base: traffic.baseCount, cars: traffic.cars.length,
-            unreachable: traffic.homes.filter((h) => !h.reach.length).length })`),
+        app.run(`({ homes: game.traffic.homes.length, base: game.traffic.baseCount, cars: game.traffic.cars.length,
+            unreachable: game.traffic.homes.filter((h) => !h.reach.length).length })`),
     );
     assert.equal(
         t.base,
@@ -55,11 +55,11 @@ test("cars only head for offices on their own connected network", () => {
     app.run("getScene()");
     const k = app.run("lines.length - 1");
     // Both networks have houses with somewhere to go...
-    assert.ok(app.run(`traffic.cars.some((c) => c.home.seg === ${k})`));
-    assert.ok(app.run(`traffic.cars.some((c) => c.home.seg !== ${k})`));
+    assert.ok(app.run(`game.traffic.cars.some((c) => c.home.seg === ${k})`));
+    assert.ok(app.run(`game.traffic.cars.some((c) => c.home.seg !== ${k})`));
     // ...but nobody is sent across to the other one
     const crossing = app.run(
-        `traffic.cars.filter((c) => c.home.reach.some((o) => (o.seg === ${k}) !== (c.home.seg === ${k}))).length`,
+        `game.traffic.cars.filter((c) => c.home.reach.some((o) => (o.seg === ${k}) !== (c.home.seg === ${k}))).length`,
     );
     assert.equal(crossing, 0);
 });
@@ -68,7 +68,7 @@ test("route runs door to door, with matching path, pieces and speeds", () => {
     const app = gridApp();
     const from = building(app, 0, 60),
         to = building(app, 3, 300);
-    const r = plain(app.run("route")(app.run("traffic"), from, to, 1));
+    const r = plain(app.run("route")(app.run("game.traffic"), from, to, 1));
     assert.equal(r.pieces.length, r.path.length - 1);
     assert.equal(r.speed.length, r.path.length - 1);
     assert.equal(r.pieces[0].kind, "drive");
@@ -94,7 +94,7 @@ test("route keeps cars in their lane, clamped to 2-lane roads' single lane", () 
     const LANE_W = app.run("LANE_W");
     for (const lane of [0, 1]) {
         const r = app.run("route")(
-            app.run("traffic"),
+            app.run("game.traffic"),
             building(app, 0, 60),
             building(app, 4, 200),
             lane,
@@ -131,7 +131,7 @@ test("route takes the shortest way through the road graph", () => {
     );
     const r = plain(
         app.run("route")(
-            app.run("traffic"),
+            app.run("game.traffic"),
             building(app, bottom, 100),
             building(app, left, 500),
             0,
@@ -153,7 +153,7 @@ test("turns are curved: no sharp corners between path pieces", () => {
     for (let n = 0; n < 40; n++) {
         const r = plain(
             app.run(
-                `(() => { const h = traffic.homes[${n} % traffic.homes.length]; return route(traffic, h, h.reach[${n} % h.reach.length], ${n % 2}); })()`,
+                `(() => { const h = game.traffic.homes[${n} % game.traffic.homes.length]; return route(game.traffic, h, h.reach[${n} % h.reach.length], ${n % 2}); })()`,
             ),
         );
         for (let i = 2; i < r.path.length - 2; i++) {
@@ -178,11 +178,11 @@ test("at a junction the turn's curve starts after the stop line", () => {
     const app = gridApp();
     const bad = app.run(`(() => {
         let bad = 0;
-        traffic.homes.forEach((h) => h.reach.forEach((o) => {
-            const r = route(traffic, h, o, 1);
+        game.traffic.homes.forEach((h) => h.reach.forEach((o) => {
+            const r = route(game.traffic, h, o, 1);
             r.pieces.forEach((p, i) => {
                 const next = r.pieces[i + 1];
-                const j = next && next.kind === 'turn' && traffic.junctions.get(next.node);
+                const j = next && next.kind === 'turn' && game.traffic.junctions.get(next.node);
                 if (p.kind === 'road' && j && (p.tail || 0) > j.clear - CAR_LEN / 2) bad++;
             });
         }));
@@ -231,27 +231,29 @@ test("pieceAt and carPos follow a car's distance along its path", () => {
 
 test("changeTraffic steps the level by 10% and adds or removes cars", () => {
     const app = gridApp();
-    const base = app.run("traffic.baseCount");
-    assert.equal(app.run("changeTraffic(traffic, 0.1)"), true);
+    const base = app.run("game.traffic.baseCount");
+    assert.equal(app.run("changeTraffic(game.traffic, 0.1)"), true);
     assert.equal(app.run("trafficLevel"), 1.1);
-    assert.equal(app.run("traffic.cars.length"), Math.round(base * 1.1));
-    app.run("changeTraffic(traffic, -0.1); changeTraffic(traffic, -0.1)");
+    assert.equal(app.run("game.traffic.cars.length"), Math.round(base * 1.1));
+    app.run(
+        "changeTraffic(game.traffic, -0.1); changeTraffic(game.traffic, -0.1)",
+    );
     assert.equal(app.run("trafficLevel"), 0.9);
-    assert.equal(app.run("traffic.cars.length"), Math.round(base * 0.9));
+    assert.equal(app.run("game.traffic.cars.length"), Math.round(base * 0.9));
 });
 
 test("changeTraffic stops at its limits, and keeps the level when roads change", () => {
     const app = gridApp();
-    app.run("for (let i = 0; i < 50; i++) changeTraffic(traffic, 0.1)");
+    app.run("for (let i = 0; i < 50; i++) changeTraffic(game.traffic, 0.1)");
     assert.equal(app.run("trafficLevel"), app.run("TRAFFIC_MAX"));
-    assert.equal(app.run("changeTraffic(traffic, 0.1)"), false);
+    assert.equal(app.run("changeTraffic(game.traffic, 0.1)"), false);
     app.road(1, [1100, 250], [1100, 600]);
     app.run("getScene()");
     assert.equal(
-        app.run("traffic.cars.length"),
-        Math.round(app.run("traffic.baseCount * TRAFFIC_MAX")),
+        app.run("game.traffic.cars.length"),
+        Math.round(app.run("game.traffic.baseCount * TRAFFIC_MAX")),
     );
-    app.run("for (let i = 0; i < 50; i++) changeTraffic(traffic, -0.1)");
+    app.run("for (let i = 0; i < 50; i++) changeTraffic(game.traffic, -0.1)");
     assert.equal(app.run("trafficLevel"), app.run("TRAFFIC_MIN"));
 });
 

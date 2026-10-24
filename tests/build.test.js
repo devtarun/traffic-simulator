@@ -1,5 +1,5 @@
 // Unit tests for the Vite build (vite.config.mjs): one HTML, one CSS and one
-// JS file, minified, with the scripts' names shortened, and a page that still
+// JS file, minified, with the modules' names shortened, and a page that still
 // starts
 
 const { test, before } = require("node:test");
@@ -22,11 +22,7 @@ const read = (f) => fs.readFileSync(path.join(out, f), "utf8");
 const sourceSize = (files) =>
     files.reduce((n, f) => n + fs.statSync(path.join(ROOT, f)).size, 0);
 const sourceScripts = () =>
-    [
-        ...fs
-            .readFileSync(path.join(ROOT, "index.html"), "utf8")
-            .matchAll(/<script\s+src="([^"]+)"/g),
-    ].map((m) => m[1]);
+    fs.readdirSync(path.join(ROOT, "js")).map((f) => "js/" + f);
 
 test("the build writes exactly index.html, app.css and app.js", () => {
     assert.deepEqual(fs.readdirSync(out).sort(), [
@@ -71,7 +67,7 @@ test("the CSS is minified", () => {
     assert.match(css, /\.settings/);
 });
 
-test("the JS bundles every script, minified, with top-level names shortened", () => {
+test("the JS bundles every module, minified, with top-level names shortened", () => {
     const js = read("app.js");
     assert.ok(
         js.length < sourceSize(sourceScripts()) * 0.6,
@@ -88,7 +84,7 @@ test("the JS bundles every script, minified, with top-level names shortened", ()
         js.split("\n").length < sourceLines / 50,
         `${js.split("\n").length} lines`,
     );
-    // top-level functions and variables from across the scripts are renamed
+    // top-level functions and variables from across the modules are renamed
     for (const name of [
         "junctionize",
         "filletPath",

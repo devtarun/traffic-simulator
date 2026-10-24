@@ -1,14 +1,33 @@
 // Drawing a frame, and keeping the canvas sized to the window
 
+import {
+    canvas,
+    ctx,
+    game,
+    lines,
+    points,
+    roadsVersion,
+    view,
+} from "./state.js";
+import { corners } from "./geometry.js";
+import { terrain } from "./terrain.js";
+import { roads } from "./roads.js";
+import { getScene } from "./layout.js";
+import { house, office, poly, tree } from "./scenery.js";
+import { pieceAt, renderCarPos, shownCars } from "./traffic.js";
+import { drawLights } from "./lights.js";
+import { drawJunctionAlerts, drawQueues, drawRoadFlow } from "./sim.js";
+import { CAR_LEN, drawCars } from "./vehicles.js";
+
 // Offscreen layer for the preview road: drawn opaque, then composited at
 // half opacity, so its stacked passes don't show through each other.
-const layer = document.createElement("canvas");
-const lctx = layer.getContext("2d");
-const sceneryLayer = document.createElement("canvas");
-const sctx = sceneryLayer.getContext("2d");
-let sceneryKey = "";
+export const layer = document.createElement("canvas");
+export const lctx = layer.getContext("2d");
+export const sceneryLayer = document.createElement("canvas");
+export const sctx = sceneryLayer.getContext("2d");
+export let sceneryKey = "";
 
-function drawScenery(dpr, boxes, trees) {
+export function drawScenery(dpr, boxes, trees) {
     const key = [
         roadsVersion,
         canvas.width,
@@ -45,7 +64,7 @@ function drawScenery(dpr, boxes, trees) {
     );
 }
 
-function render() {
+export function render() {
     // Clear and composite in device pixels; draw everything else in world coordinates
     const dpr = window.devicePixelRatio || 1;
     const toWorld = (c) =>
@@ -63,14 +82,14 @@ function render() {
     drawScenery(dpr, boxes, trees);
     ctx.drawImage(sceneryLayer, 0, 0);
     toWorld(ctx);
-    drawLights(ctx, traffic);
-    drawQueues(ctx, traffic);
-    if (selectedRoad !== null && lines[selectedRoad])
-        drawRoadFlow(ctx, traffic, selectedRoad);
+    drawLights(ctx, game.traffic);
+    drawQueues(ctx, game.traffic);
+    if (game.selectedRoad !== null && lines[game.selectedRoad])
+        drawRoadFlow(ctx, game.traffic, game.selectedRoad);
     // Selected junction: a light blue ring around its box
     const sj =
-        selectedJunction !== null
-            ? traffic.junctions.get(selectedJunction)
+        game.selectedJunction !== null
+            ? game.traffic.junctions.get(game.selectedJunction)
             : null;
     if (sj) {
         ctx.strokeStyle = "rgba(90, 190, 255, 0.95)";
@@ -89,12 +108,12 @@ function render() {
     // shown cars (the selected car, or all cars driving to the selected box),
     // under the cars: light blue lines from each car to its destination's door,
     // ending in a dot. Sizes are in screen px.
-    const shown = !roadEnabled || trafficEnabled ? shownCars() : [];
+    const shown = !game.roadEnabled || game.trafficEnabled ? shownCars() : [];
     ctx.strokeStyle = ctx.fillStyle = "rgba(90, 190, 255, 0.9)";
     ctx.lineCap = ctx.lineJoin = "round";
-    if ((!roadEnabled || trafficEnabled) && selectedBox) {
+    if ((!game.roadEnabled || game.trafficEnabled) && game.selectedBox) {
         ctx.lineWidth = 3 / view.scale;
-        poly(corners(selectedBox));
+        poly(corners(game.selectedBox));
         ctx.stroke();
     }
     shown.forEach((car) => {
@@ -113,7 +132,7 @@ function render() {
     ctx.lineCap = "butt";
     ctx.lineJoin = "miter";
     drawCars(ctx);
-    drawJunctionAlerts(ctx, traffic);
+    drawJunctionAlerts(ctx, game.traffic);
     // Rings around the shown cars
     ctx.strokeStyle = "rgba(90, 190, 255, 0.9)";
     ctx.lineWidth = 2 / view.scale;
@@ -123,11 +142,11 @@ function render() {
         ctx.arc(p.x, p.y, CAR_LEN / 2 + 3 / view.scale, 0, Math.PI * 2);
         ctx.stroke();
     });
-    if (last !== null && pointer) {
+    if (game.last !== null && game.pointer) {
         lctx.setTransform(1, 0, 0, 1, 0, 0);
         lctx.clearRect(0, 0, layer.width, layer.height);
         toWorld(lctx);
-        roads(lctx, [[points[last], pointer, roadLanes]]);
+        roads(lctx, [[points[game.last], game.pointer, game.roadLanes]]);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 0.5;
         ctx.drawImage(layer, 0, 0);
@@ -139,7 +158,7 @@ function render() {
 
 // Match the backing store to CSS size × devicePixelRatio so drawing stays sharp.
 // Resizing clears the canvas, so redraw everything afterwards.
-function resize() {
+export function resize() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvas.clientWidth * dpr;
     canvas.height = canvas.clientHeight * dpr;

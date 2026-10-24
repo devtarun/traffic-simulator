@@ -1,15 +1,18 @@
 // Drawing houses, trees and offices
 
-const ROOFS = [
+import { ctx } from "./state.js";
+import { corners, hash, rng } from "./geometry.js";
+
+export const ROOFS = [
     [12, 55, 48],
     [210, 12, 45],
     [25, 35, 40],
     [0, 45, 40],
     [100, 18, 40],
 ]; // HSL
-const LIGHT = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }; // light from the top left
+export const LIGHT = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }; // light from the top left
 
-function poly(pts, c = ctx) {
+export function poly(pts, c = ctx) {
     c.beginPath();
     pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
     c.closePath();
@@ -18,7 +21,7 @@ function poly(pts, c = ctx) {
 // Draws box b as a house seen from above: a hip roof whose four faces are
 // shaded by how much they face LIGHT, a drop shadow and maybe a chimney.
 // Colour and chimney are seeded from the box's position, so they're stable.
-function house(b, c = ctx) {
+export function house(b, c = ctx) {
     const rand = rng(hash(b.c.x * 10, b.c.y * 10));
     const [h, s, l] = ROOFS[Math.floor(rand() * ROOFS.length)];
     // Long axis a with half-length L, short axis m with half-length S
@@ -78,7 +81,7 @@ function house(b, c = ctx) {
 
 // Draws a tree seen from above: a shadow, a round canopy and a highlight on
 // the side facing LIGHT
-function tree({ c: p, r, shade }, c = ctx) {
+export function tree({ c: p, r, shade }, c = ctx) {
     const disc = (x, y, rad) => {
         c.beginPath();
         c.arc(x, y, rad, 0, Math.PI * 2);
@@ -97,7 +100,7 @@ function tree({ c: p, r, shade }, c = ctx) {
 
 // Draws box b as an office seen from above: a flat concrete roof with a
 // raised parapet, a few rooftop units and a longer shadow, since it's taller
-function office(b, c = ctx) {
+export function office(b, c = ctx) {
     const rand = rng(hash(b.c.x * 10, b.c.y * 10));
     c.fillStyle = "rgba(0, 0, 0, 0.25)";
     poly(

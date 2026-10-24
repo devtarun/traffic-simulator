@@ -1,13 +1,16 @@
 // Grass terrain under everything: a seeded tile repeated as a pattern in
 // world space, so it pans and zooms with the map
 
-const TERRAIN_TILE = 128; // tile size in world px
-const GRASS = "#a9cf8f";
+import { canvas, view } from "./state.js";
+import { rng } from "./geometry.js";
+
+export const TERRAIN_TILE = 128; // tile size in world px
+export const GRASS = "#a9cf8f";
 
 // One tile: grass with faint speckles and a few darker tufts. Seeded, so it
 // looks the same every load; marks near an edge are also drawn wrapped
 // round to the opposite edge, so the tiles join without seams.
-const terrainTile = (() => {
+export const terrainTile = (() => {
     const t = document.createElement("canvas");
     t.width = t.height = TERRAIN_TILE;
     const g = t.getContext("2d");
@@ -45,11 +48,11 @@ const terrainTile = (() => {
     return t;
 })();
 
-let terrainPattern = null;
+export let terrainPattern = null;
 
 // Fills the visible part of the world with grass. c must already be in world
 // coordinates; the pattern is anchored at the world origin.
-function terrain(c) {
+export function terrain(c) {
     if (!terrainPattern)
         terrainPattern = c.createPattern(terrainTile, "repeat");
     c.fillStyle = terrainPattern || GRASS;

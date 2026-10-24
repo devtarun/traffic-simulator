@@ -13,7 +13,7 @@ test("saveData and applySave round-trip roads, view and signals", () => {
     app.road(2, [0, 200], [800, 200]);
     app.road(1, [200, 0], [200, 400]);
     app.run(
-        "getScene(); toggleLight([...traffic.junctions.keys()][0]); lights.get('200,200').green = 20",
+        "getScene(); toggleLight([...game.traffic.junctions.keys()][0]); lights.get('200,200').green = 20",
     );
     app.run("Object.assign(view, { x: 30, y: -40, scale: 1.5 })");
     const data = plain(app.run("saveData()"));

@@ -1,10 +1,31 @@
 // Laying out boxes (houses and offices) and trees along the roads
 
+import {
+    BOX_GAP,
+    BOX_MIN,
+    OFFICE_SHARE,
+    ROAD_WIDTH,
+    game,
+    lines,
+    points,
+    roadWidth,
+    roadsVersion,
+} from "./state.js";
+import {
+    boxesOverlap,
+    hash,
+    pointSegDist,
+    rng,
+    segBoxDist,
+} from "./geometry.js";
+import { makeTraffic } from "./traffic.js";
+import { lights, posKey } from "./lights.js";
+
 // Lays boxes along both sides of every road, left to right from CLEAR px
 // past each end, skipping any that would cover a road, a point or a box.
 // Then puts a tree in the gap after each placed box where one fits. Trees
 // go in after all boxes, so they never change where boxes land.
-function layout() {
+export function layout() {
     // [p, q, half the road's width]
     const segs = lines.map(([a, b, lanes]) => [
         points[a],
@@ -110,17 +131,21 @@ function layout() {
 // Boxes and trees only change when the roads do, so cache them between
 // renders; traffic is rebuilt along with them. The key is roadsVersion, plus
 // the counts as a safety net for any change that didn't call roadsChanged().
-let sceneKey = "",
+export let sceneKey = "",
     scene = { boxes: [], trees: [] };
-function getScene() {
+export function getScene() {
     const key = roadsVersion + ":" + points.length + ":" + lines.length;
     if (key !== sceneKey) {
         sceneKey = key;
         scene = layout();
-        traffic = makeTraffic(scene);
-        selectedCar = selectedBox = selectedJunction = selectedRoad = null;
+        game.traffic = makeTraffic(scene);
+        game.selectedCar =
+            game.selectedBox =
+            game.selectedJunction =
+            game.selectedRoad =
+                null;
         // Drop signals whose junction is gone
-        const keep = new Set([...traffic.junctions.keys()].map(posKey));
+        const keep = new Set([...game.traffic.junctions.keys()].map(posKey));
         [...lights.keys()].forEach((k) => {
             if (!keep.has(k)) lights.delete(k);
         });

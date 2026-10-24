@@ -1,7 +1,7 @@
 // End-to-end tests: the real page in Chrome, driven with the mouse and
 // keyboard. Each test gets a fresh browser profile (empty localStorage).
-// Assertions read app state through page.evaluate(): the scripts are plain
-// globals, so points, lines, traffic and so on are reachable by name.
+// Assertions read app state with state(page, fn): fn runs in the page with
+// every module's exports in scope (points, lines, game.traffic and so on).
 
 const { test, expect } = require("@playwright/test");
 
@@ -37,7 +37,22 @@ async function buildCross(page) {
     await drawRoad(page, [550, 120], [550, 650]);
 }
 
-const state = (page, expr) => page.evaluate(expr);
+// The dev server hands out each module once, so importing them here gives
+// the very instances the app is running
+const MODULES = ["state", "layout", "lights", "traffic", "sim"];
+const state = (page, fn) =>
+    page.evaluate(
+        async ({ modules, src }) => {
+            const all = await Promise.all(
+                modules.map((m) => import(`/js/${m}.js`)),
+            );
+            const scope = Object.assign({}, ...all);
+            return new Function("scope", `with (scope) return (${src})();`)(
+                scope,
+            );
+        },
+        { modules: MODULES, src: fn.toString() },
+    );
 
 test("the start screen starts a fresh game", async ({ page }) => {
     await page.goto("/index.html");
@@ -46,7 +61,11 @@ test("the start screen starts a fresh game", async ({ page }) => {
     await page.click("#fresh-game");
     await expect(page.locator("#start-screen")).toBeHidden();
     expect(
-        await state(page, () => [roadEnabled, trafficEnabled, paused]),
+        await state(page, () => [
+            game.roadEnabled,
+            game.trafficEnabled,
+            game.paused,
+        ]),
     ).toEqual([false, false, false]);
 });
 
@@ -62,13 +81,15 @@ test("drawing two crossing roads makes a junction, houses and traffic", async ({
         })),
     ).toEqual({ points: 5, lines: 4 });
     // Traffic is rebuilt on the next animation frame, so wait for it
-    await expect.poll(() => state(page, () => traffic.junctions.size)).toBe(1);
+    await expect
+        .poll(() => state(page, () => game.traffic.junctions.size))
+        .toBe(1);
     expect(await state(page, () => getScene().boxes.length)).toBeGreaterThan(
         10,
     );
     await expect
         .poll(() =>
-            state(page, () => traffic.cars.filter((c) => c.path).length),
+            state(page, () => game.traffic.cars.filter((c) => c.path).length),
         )
         .toBeGreaterThan(0);
 });
@@ -113,10 +134,10 @@ test("the settings popup pauses the simulation until Resume", async ({
     await startFresh(page);
     await page.click("#settings");
     await expect(page.locator("#settings-menu")).toBeVisible();
-    expect(await state(page, () => paused)).toBe(true);
+    expect(await state(page, () => game.paused)).toBe(true);
     await page.click("#resume");
     await expect(page.locator("#settings-menu")).toBeHidden();
-    expect(await state(page, () => paused)).toBe(false);
+    expect(await state(page, () => game.paused)).toBe(false);
 });
 
 test("a saved game can be resumed after reloading", async ({ page }) => {
@@ -141,7 +162,7 @@ test("the speed button cycles normal, 2× and 3×", async ({ page }) => {
     ]) {
         await speed.click();
         await expect(speed).toHaveText(label);
-        expect(await state(page, () => simSpeed)).toBe(n);
+        expect(await state(page, () => game.simSpeed)).toBe(n);
     }
 });
 
@@ -150,14 +171,14 @@ test("traffic + adds cars and says so in a toast", async ({ page }) => {
     await buildCross(page);
     // Wait for traffic to be rebuilt for the new roads before counting
     await expect
-        .poll(() => state(page, () => traffic.cars.length))
+        .poll(() => state(page, () => game.traffic.cars.length))
         .toBeGreaterThan(0);
-    const before = await state(page, () => traffic.cars.length);
+    const before = await state(page, () => game.traffic.cars.length);
     await page.click("#traffic-more");
     await expect(page.locator("#toasts")).toContainText(
         "Traffic increased by 10%",
     );
-    expect(await state(page, () => traffic.cars.length)).toBeGreaterThan(
+    expect(await state(page, () => game.traffic.cars.length)).toBeGreaterThan(
         before,
     );
 });

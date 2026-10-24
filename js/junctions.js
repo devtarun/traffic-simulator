@@ -1,8 +1,19 @@
 // Junctions: making roads that cross or touch share a point, so markings stop
 // at the junction and cars can turn there
 
+import {
+    HIT,
+    game,
+    lines,
+    points,
+    roadWidth,
+    roadsChanged,
+    view,
+} from "./state.js";
+import { pointSegDist } from "./geometry.js";
+
 // Where segments p–q and r–s cross, strictly inside both (not at an end), or null
-function crossing(p, q, r, s) {
+export function crossing(p, q, r, s) {
     const d1 = { x: q.x - p.x, y: q.y - p.y },
         d2 = { x: s.x - r.x, y: s.y - r.y };
     const den = d1.x * d2.y - d1.y * d2.x;
@@ -15,7 +26,7 @@ function crossing(p, q, r, s) {
 }
 
 // Adds road a–b unless it's a loop or already exists
-function addLine(a, b, lanes) {
+export function addLine(a, b, lanes) {
     if (
         a === b ||
         lines.some(([x, y]) => (x === a && y === b) || (x === b && y === a))
@@ -26,7 +37,7 @@ function addLine(a, b, lanes) {
 }
 
 // Replaces line k with two lines meeting at point m, keeping its type
-function splitLine(k, m) {
+export function splitLine(k, m) {
     const [a, b, lanes] = lines.splice(k, 1)[0];
     roadsChanged();
     addLine(a, m, lanes);
@@ -38,7 +49,7 @@ function splitLine(k, m) {
 // through another road's point is split at that point. Repeats until nothing
 // changes, since each split can create new pairs to check. Never removes
 // points, so indices (and last) stay valid.
-function junctionize() {
+export function junctionize() {
     for (let changed = true; changed;) {
         changed = false;
         for (let i = 0; i < lines.length && !changed; i++) {
@@ -87,12 +98,12 @@ function junctionize() {
 // back along it. With an angle-snap axis ('x' for horizontal, 'y' for
 // vertical, through last), the join is where that axis meets the road's center
 // line; otherwise it's q's projection onto it. Returns { p, line } or null.
-function roadAt(q, axis) {
+export function roadAt(q, axis) {
     let best = null,
         bestDist = Infinity;
     const end = HIT / view.scale;
     lines.forEach(([a, b, lanes], k) => {
-        if (a === last || b === last) return;
+        if (a === game.last || b === game.last) return;
         const p0 = points[a],
             p1 = points[b];
         const d = pointSegDist(q, p0, p1);
@@ -101,8 +112,8 @@ function roadAt(q, axis) {
             dy = p1.y - p0.y,
             L = Math.hypot(dx, dy);
         let t = ((q.x - p0.x) * dx + (q.y - p0.y) * dy) / (L * L);
-        if (axis && last !== null) {
-            const o = points[last];
+        if (axis && game.last !== null) {
+            const o = points[game.last];
             // Solve p0 + t·(dx, dy) on the line y = o.y (axis x) or x = o.x (axis y)
             const s =
                 axis === "x"

@@ -20,7 +20,7 @@ function gridApp() {
 
 // Runs the simulation for `seconds`, calling check() every 0.1 s
 function run(app, seconds, check) {
-    const step = app.run(`() => stepSim(traffic, ${DT})`);
+    const step = app.run(`() => stepSim(game.traffic, ${DT})`);
     for (let k = 0; k < seconds / DT; k++) {
         step();
         if (check && k % 12 === 0) check(k * DT);
@@ -29,7 +29,7 @@ function run(app, seconds, check) {
 
 // Pairs of cars in the same lane closer than a car length plus the gap
 const overlaps = (app) =>
-    app.run(`(() => { let bad = 0; (traffic.lanes || new Map()).forEach((list) => {
+    app.run(`(() => { let bad = 0; (game.traffic.lanes || new Map()).forEach((list) => {
         for (let k = 1; k < list.length; k++) if (list[k].pos - list[k - 1].pos < CAR_LEN + MIN_GAP - 0.5) bad++;
     }); return bad; })()`);
 
@@ -70,12 +70,13 @@ test("cars never overlap in a lane and keep moving", () => {
     let worst = 0,
         nan = 0,
         trips = 0;
-    const parked = () => app.run("traffic.cars.filter((c) => !c.path).length");
+    const parked = () =>
+        app.run("game.traffic.cars.filter((c) => !c.path).length");
     let before = parked();
     run(app, 120, (t) => {
         if (t > 3) worst = Math.max(worst, overlaps(app));
         nan += app.run(
-            "traffic.cars.filter((c) => c.path && !isFinite(carPos(c).x)).length",
+            "game.traffic.cars.filter((c) => c.path && !isFinite(carPos(c).x)).length",
         );
         const now = parked();
         if (now > before) trips += now - before;
@@ -88,7 +89,7 @@ test("cars never overlap in a lane and keep moving", () => {
 
 test("with signals, no car enters a junction on red", () => {
     const app = gridApp();
-    app.run("traffic.junctions.forEach((j) => toggleLight(j.node))");
+    app.run("game.traffic.junctions.forEach((j) => toggleLight(j.node))");
     app.run(`(() => {
         window.__entries = 0; window.__onRed = 0;
         const orig = stepSim;
@@ -112,7 +113,7 @@ test("a standstill is flagged blocked, then gridlocked, and clears when traffic 
     const app = gridApp();
     run(app, 10);
     app.run(
-        "traffic.cars.forEach((c) => { c.__speed = c.speed; c.speed = 0; })",
+        "game.traffic.cars.forEach((c) => { c.__speed = c.speed; c.speed = 0; })",
     );
     const BLOCK = app.run("BLOCK_TIME"),
         GRID = app.run("GRIDLOCK_TIME");
@@ -123,12 +124,16 @@ test("a standstill is flagged blocked, then gridlocked, and clears when traffic 
         const t = app.run("simTime") - t0;
         if (
             firstBlocked === null &&
-            app.run("[...traffic.junctions.values()].some((j) => j.blocked)")
+            app.run(
+                "[...game.traffic.junctions.values()].some((j) => j.blocked)",
+            )
         )
             firstBlocked = t;
         if (
             firstGrid === null &&
-            app.run("[...traffic.junctions.values()].some((j) => j.gridlock)")
+            app.run(
+                "[...game.traffic.junctions.values()].some((j) => j.gridlock)",
+            )
         )
             firstGrid = t;
     });
@@ -144,11 +149,11 @@ test("a standstill is flagged blocked, then gridlocked, and clears when traffic 
             firstGrid <= GRID + 0.5,
         `gridlock at ${firstGrid}`,
     );
-    app.run("traffic.cars.forEach((c) => { c.speed = c.__speed; })");
+    app.run("game.traffic.cars.forEach((c) => { c.speed = c.__speed; })");
     run(app, 30);
     assert.equal(
         app.run(
-            "[...traffic.junctions.values()].filter((j) => j.blocked || j.gridlock).length",
+            "[...game.traffic.junctions.values()].filter((j) => j.blocked || j.gridlock).length",
         ),
         0,
     );
@@ -157,12 +162,12 @@ test("a standstill is flagged blocked, then gridlocked, and clears when traffic 
 test("waiting at a long red light isn't reported as blocked", () => {
     const app = gridApp();
     app.run(
-        "traffic.junctions.forEach((j) => { toggleLight(j.node); lightAt(j.node).green = GREEN_MAX; })",
+        "game.traffic.junctions.forEach((j) => { toggleLight(j.node); lightAt(j.node).green = GREEN_MAX; })",
     );
     let flagged = 0;
     run(app, 120, () => {
         flagged += app.run(
-            "[...traffic.junctions.values()].filter((j) => j.blocked).length",
+            "[...game.traffic.junctions.values()].filter((j) => j.blocked).length",
         );
     });
     assert.equal(flagged, 0);
@@ -176,7 +181,7 @@ test("a long red builds a queue, which roadStats reports", () => {
     run(app, 70, () => {
         const s = plain(
             app.run(
-                `lines.flatMap(([a, b], k) => a === ${j} || b === ${j} ? [roadStats(traffic, k, 1), roadStats(traffic, k, -1)] : [])`,
+                `lines.flatMap(([a, b], k) => a === ${j} || b === ${j} ? [roadStats(game.traffic, k, 1), roadStats(game.traffic, k, -1)] : [])`,
             ),
         );
         s.forEach((x) => {
@@ -193,7 +198,7 @@ test("roadStats stays in range on every road", () => {
     run(app, 40);
     const all = plain(
         app.run(
-            "lines.flatMap((l, k) => [roadStats(traffic, k, 1), roadStats(traffic, k, -1)])",
+            "lines.flatMap((l, k) => [roadStats(game.traffic, k, 1), roadStats(game.traffic, k, -1)])",
         ),
     );
     all.forEach((s) => {
@@ -211,14 +216,14 @@ test("updateAlerts shows one toast per gridlock until it clears", () => {
     app.run(
         "window.__toasts = []; showGridlockToast = (p) => __toasts.push(p)",
     );
-    const j = app.run("[...traffic.junctions.values()][0]");
+    const j = app.run("[...game.traffic.junctions.values()][0]");
     j.gridlock = true;
-    app.run("updateAlerts(traffic); updateAlerts(traffic)");
+    app.run("updateAlerts(game.traffic); updateAlerts(game.traffic)");
     assert.equal(app.run("__toasts.length"), 1);
     j.gridlock = false;
-    app.run("updateAlerts(traffic)");
+    app.run("updateAlerts(game.traffic)");
     j.gridlock = true;
-    app.run("updateAlerts(traffic)");
+    app.run("updateAlerts(game.traffic)");
     assert.equal(app.run("__toasts.length"), 2);
 });
 
@@ -227,7 +232,7 @@ test("the queue, flow and alert drawing runs without errors", () => {
     run(app, 10);
     assert.doesNotThrow(() =>
         app.run(
-            "drawQueues(ctx, traffic); drawRoadFlow(ctx, traffic, 0); drawJunctionAlerts(ctx, traffic)",
+            "drawQueues(ctx, game.traffic); drawRoadFlow(ctx, game.traffic, 0); drawJunctionAlerts(ctx, game.traffic)",
         ),
     );
 });

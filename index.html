@@ -112,25 +112,6 @@
             <button data-lanes="1">2-lane road</button>
             <button data-lanes="2">4-lane road</button>
         </div>
-
-        <!-- Plain scripts sharing one global scope, not modules, so the page still
-        works opened straight from disk (file://). Order matters: main.js runs
-        the startup code and must come last. -->
-        <script src="js/state.js"></script>
-        <script src="js/geometry.js"></script>
-        <script src="js/terrain.js"></script>
-        <script src="js/roads.js"></script>
-        <script src="js/layout.js"></script>
-        <script src="js/scenery.js"></script>
-        <script src="js/traffic.js"></script>
-        <script src="js/lights.js"></script>
-        <script src="js/sim.js"></script>
-        <script src="js/junctions.js"></script>
-        <script src="js/vehicles.js"></script>
-        <script src="js/render.js"></script>
-        <script src="js/storage.js"></script>
-        <script src="js/inspect.js"></script>
-        <script src="js/input.js"></script>
-        <script src="js/main.js"></script>
+        <script type="module" src="./js/main.js"></script>
     </body>
 </html>

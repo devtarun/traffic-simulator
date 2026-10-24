@@ -96,17 +96,17 @@ test("some boxes are offices, always at least one", () => {
 test("getScene caches until the roads change, then rebuilds traffic too", () => {
     const app = gridApp();
     const first = app.run("getScene()");
-    const traffic1 = app.run("traffic");
+    const traffic1 = app.run("game.traffic");
     assert.equal(app.run("getScene()"), first); // same object: cached
     app.road(1, [1100, 250], [1100, 600]);
     assert.notEqual(app.run("getScene()"), first);
-    assert.notEqual(app.run("traffic"), traffic1);
+    assert.notEqual(app.run("game.traffic"), traffic1);
 });
 
 test("getScene drops signals whose junction is gone", () => {
     const app = gridApp();
     app.run("getScene()");
-    app.run("toggleLight([...traffic.junctions.keys()][0])");
+    app.run("toggleLight([...game.traffic.junctions.keys()][0])");
     app.run("lights.set('9999,9999', { green: 12, start: 0 })"); // no junction there
     app.run("roadsChanged(); getScene()");
     assert.equal(app.run("lights.size"), 1);

@@ -4,14 +4,14 @@ A small, dependency-free road building and traffic simulation game that runs in 
 
 ## Run
 
-Open `index.html` in a modern browser, or use the included dev server:
+Use the included dev server (Vite):
 
 ```sh
 npm install
 npm run dev
 ```
 
-Then open `http://127.0.0.1:8080`. The app runs straight from the source; the local server is only for development.
+Then open `http://127.0.0.1:8080`. The app is plain ES modules served straight from the source; browsers won't load modules from `file://`, so it needs a server rather than opening `index.html` from disk.
 
 ## Build
 
@@ -20,7 +20,7 @@ npm run build      # writes dist/
 npm run preview    # serves dist/ to try it
 ```
 
-Vite builds a deployable copy in `dist/`: `index.html`, `app.css` and `app.js`. All the scripts are bundled into `app.js` and minified, which also shortens every internal name (compressed and obfuscated); the CSS and HTML are minified too. Serve `dist/` from a web server; the built page can't be opened straight from disk.
+Vite builds a deployable copy in `dist/`: `index.html`, `app.css` and `app.js`. All the modules are bundled into `app.js` and minified, which also shortens every internal name (compressed and obfuscated); the CSS and HTML are minified too. Serve `dist/` from a web server; the built page can't be opened straight from disk.
 
 ## Tests
 

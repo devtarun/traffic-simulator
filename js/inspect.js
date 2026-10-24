@@ -2,23 +2,33 @@
 // layout is built when the selection changes; the live values in it are
 // refreshed every frame by updatePanel().
 
-const panel = document.getElementById("panel");
-const panelTitle = panel.querySelector(".panel-title");
-const panelBody = panel.querySelector(".panel-body");
+import { canvas, game, lines, points, view } from "./state.js";
+import {
+    GREEN_MAX,
+    GREEN_MIN,
+    lightAt,
+    lightCycle,
+    toggleLight,
+} from "./lights.js";
+import { roadStats } from "./sim.js";
+
+export const panel = document.getElementById("panel");
+export const panelTitle = panel.querySelector(".panel-title");
+export const panelBody = panel.querySelector(".panel-body");
 panel.querySelector(".panel-close").onclick = () => {
-    selectedJunction = selectedRoad = null;
+    game.selectedJunction = game.selectedRoad = null;
 };
 
-let panelFor = undefined; // what the panel was last built for
-const STATE_NAMES = { green: "Green", amber: "Amber", red: "All red" };
-const LEVEL_CLASS = {
+export let panelFor = undefined; // what the panel was last built for
+export const STATE_NAMES = { green: "Green", amber: "Amber", red: "All red" };
+export const LEVEL_CLASS = {
     Free: "ok",
     Busy: "warn",
     Congested: "warn",
     Jammed: "bad",
 };
 
-function junctionStatus(j) {
+export function junctionStatus(j) {
     return j.gridlock
         ? ["Gridlock", "bad"]
         : j.blocked
@@ -27,7 +37,7 @@ function junctionStatus(j) {
 }
 
 // Compass name for travel along line k in direction dir (screen up is north)
-function heading(k, dir) {
+export function heading(k, dir) {
     const p = points[lines[k][0]],
         q = points[lines[k][1]];
     const a = Math.atan2((q.y - p.y) * dir, (q.x - p.x) * dir); // 0 = east, π/2 = south
@@ -46,7 +56,7 @@ function heading(k, dir) {
 }
 
 // Builds the junction panel's layout for junction node
-function buildJunctionPanel(node) {
+export function buildJunctionPanel(node) {
     const light = lightAt(node);
     panelTitle.textContent = "Intersection";
     panelBody.innerHTML = light
@@ -75,7 +85,7 @@ function buildJunctionPanel(node) {
 }
 
 // Builds the road panel's layout for line k: a column per direction
-function buildRoadPanel(k) {
+export function buildRoadPanel(k) {
     panelTitle.textContent =
         (lines[k][2] === 1 ? "2-lane" : "4-lane") + " road";
     const rows = [
@@ -96,10 +106,10 @@ function buildRoadPanel(k) {
 // Gridlock toasts, stacked at the bottom right, newest at the bottom. Each
 // fades out after TOAST_TIME unless clicked; clicking one removes it and
 // centres the view on its junction (keeping the zoom).
-const TOAST_TIME = 3000; // ms
-const toasts = document.getElementById("toasts");
+export const TOAST_TIME = 3000; // ms
+export const toasts = document.getElementById("toasts");
 
-function centerOn(p) {
+export function centerOn(p) {
     view.x = canvas.clientWidth / 2 - p.x * view.scale;
     view.y = canvas.clientHeight / 2 - p.y * view.scale;
 }
@@ -107,7 +117,7 @@ function centerOn(p) {
 // Shows a toast with a bold title and a smaller line under it. kind picks
 // the colour ('alert' red, 'info' dark); onClick runs when it's clicked,
 // and any click removes it.
-function showToast(title, sub, kind = "info", onClick = null) {
+export function showToast(title, sub, kind = "info", onClick = null) {
     const el = document.createElement("button");
     el.className = "toast " + kind;
     el.innerHTML = "<b></b><span></span>";
@@ -126,7 +136,7 @@ function showToast(title, sub, kind = "info", onClick = null) {
     setTimeout(dismiss, TOAST_TIME);
 }
 
-function showGridlockToast(p) {
+export function showGridlockToast(p) {
     const at = { x: p.x, y: p.y }; // a copy, as points can change before it's clicked
     showToast("⚠ Gridlock", "Click to view the intersection", "alert", () =>
         centerOn(at),
@@ -134,12 +144,14 @@ function showGridlockToast(p) {
 }
 
 // Shows, hides, rebuilds or refreshes the panel to match the selection
-function updatePanel(t) {
+export function updatePanel(t) {
     const j =
-        selectedJunction !== null ? t.junctions.get(selectedJunction) : null;
+        game.selectedJunction !== null
+            ? t.junctions.get(game.selectedJunction)
+            : null;
     const road =
-        !j && selectedRoad !== null && lines[selectedRoad]
-            ? selectedRoad
+        !j && game.selectedRoad !== null && lines[game.selectedRoad]
+            ? game.selectedRoad
             : null;
     const want = j
         ? "j" + j.node + ":" + (lightAt(j.node) ? "timed" : "none")

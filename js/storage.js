@@ -1,17 +1,29 @@
 // Browser saves and exported backups share this data shape.
-let autoSaveOnFirstRoad = false;
 
-function saveData() {
+import {
+    MAX_LANES,
+    STORAGE_KEY,
+    game,
+    lines,
+    points,
+    roadsChanged,
+    view,
+} from "./state.js";
+import { line } from "./roads.js";
+import { GREEN_MAX, GREEN_MIN, lights } from "./lights.js";
+import { junctionize } from "./junctions.js";
+
+export function saveData() {
     return {
         points: points.map(({ x, y }) => ({ x, y })),
         lines: lines.map((line) => [...line]),
-        last,
+        last: game.last,
         view: { ...view },
         lights: [...lights].map(([key, light]) => [key, light.green]),
     };
 }
 
-function normalizeSave(data) {
+export function normalizeSave(data) {
     if (!data || !Array.isArray(data.points) || !Array.isArray(data.lines))
         throw new Error("This file is not a valid traffic simulator backup.");
 
@@ -73,14 +85,14 @@ function normalizeSave(data) {
     };
 }
 
-function applySave(data) {
+export function applySave(data) {
     const saved = normalizeSave(data);
     points.length = 0;
     points.push(...saved.points);
     lines.length = 0;
     lines.push(...saved.lines);
     roadsChanged();
-    last = saved.last;
+    game.last = saved.last;
     Object.assign(view, saved.view);
     lights.clear();
     saved.lights.forEach(([key, green]) =>
@@ -89,7 +101,7 @@ function applySave(data) {
     junctionize(); // Older saves may have crossings without a shared point.
 }
 
-function load() {
+export function load() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return false;
@@ -101,17 +113,17 @@ function load() {
     }
 }
 
-function storeSave(data = saveData()) {
+export function storeSave(data = saveData()) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeSave(data)));
 }
 
-function restoreSave(data) {
+export function restoreSave(data) {
     const saved = normalizeSave(data);
     storeSave(saved);
     applySave(saved);
 }
 
-const saveBtn = document.getElementById("save");
+export const saveBtn = document.getElementById("save");
 saveBtn.onclick = () => {
     try {
         storeSave();

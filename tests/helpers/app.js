@@ -1,9 +1,13 @@
 // Loads the app's scripts for unit tests, without a browser.
 //
-// The scripts in js/ are plain browser scripts sharing one global scope, so
-// they can't be imported. loadApp() reads them in index.html order and runs
-// them in a fresh vm context with minimal stand-ins for the DOM, canvas,
-// localStorage and timers. Every call gives an independent copy of the app.
+// The modules in js/ expect a browser, so they aren't imported directly.
+// loadApp() follows index.html's module graph, and runs each module (minus
+// its import and export keywords) in a fresh vm context with minimal
+// stand-ins for the DOM, canvas, localStorage and timers. Top-level names are
+// unique across modules, so they can share the context's global scope, and
+// tests reach any of them by name. Every call gives an independent copy of
+// the app. Values more than one module changes live on `game` (state.js):
+// app.run('game.paused').
 //
 //   const app = loadApp();
 //   app.run('points.length')            // evaluate an expression in the app
@@ -29,11 +33,40 @@ function hiddenIds(root) {
     );
 }
 
-// Script paths in the order index.html loads them
-function scriptPaths(root) {
+// Static imports of a module, in source order
+const IMPORT = /^import\s+(?:[^;]*?\s+from\s+)?"([^"]+)";?[ \t]*$/gm;
+
+// The page's modules in the order a browser evaluates them: index.html's
+// module scripts, each after the modules it imports (depth first, every
+// module once, a cycle stopping at a module already being loaded)
+function modulePaths(root) {
     const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-    return [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((m) =>
-        path.join(root, m[1]),
+    const order = [];
+    const seen = new Set();
+    const visit = (file) => {
+        if (seen.has(file)) return;
+        seen.add(file);
+        const src = fs.readFileSync(file, "utf8");
+        for (const m of src.matchAll(IMPORT))
+            visit(path.resolve(path.dirname(file), m[1]));
+        order.push(file);
+    };
+    for (const m of html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g))
+        visit(path.join(root, m[1]));
+    return order;
+}
+
+// A module's code as a plain script: the imports go (every module shares
+// the context's global scope instead) and so does each `export` keyword.
+// Kept on their lines, so errors still point at the right line, and strict,
+// like a module.
+function asScript(src) {
+    return (
+        '"use strict";' +
+        src
+            .replace(IMPORT, "")
+            .replace(/^export\s+/gm, "")
+            .replace(/\bexport\s*\{[^}]*\};?/g, "")
     );
 }
 
@@ -164,10 +197,11 @@ function loadApp({ storage = {}, quiet = false, root = ROOT } = {}) {
     };
     sandbox.window = sandbox;
     const context = vm.createContext(sandbox);
-    // One script per file, like the browser: they share the context's global
-    // scope, and errors point at the real file and line
-    for (const p of scriptPaths(root)) {
-        vm.runInContext(fs.readFileSync(p, "utf8"), context, { filename: p });
+    // One script per module, so errors point at the real file and line
+    for (const p of modulePaths(root)) {
+        vm.runInContext(asScript(fs.readFileSync(p, "utf8")), context, {
+            filename: p,
+        });
     }
     // Builds a road through world points ([x, y] pairs), reusing a point
     // already at the same spot, then junctionizes like a click would

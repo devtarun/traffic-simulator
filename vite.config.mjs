@@ -1,54 +1,16 @@
-// Production build with Vite: `npm run build` writes dist/ with one
-// index.html, one app.css and one app.js; `npm run preview` serves it.
+// Vite serves the app in development (`npm run dev`) and builds it for
+// production: `npm run build` writes dist/ with one index.html, one app.css
+// and one app.js; `npm run preview` serves that.
 //
-// The app is plain <script src> files sharing one global scope, not ES
-// modules, and Vite only bundles modules. So the classicScripts() plugin
-// takes those script tags out of index.html and gives Vite one virtual
-// module instead: every script, in index.html order, inside a single
-// function. That keeps their shared scope, and turns all their top-level
-// names into locals, which the minifier then shortens (compressed and
-// obfuscated; nothing is left global). The source page is untouched and
-// still runs straight from disk.
+// The app is ES modules (js/main.js is the entry), so Vite needs no plugin to
+// bundle them. The bundle is minified, which also shortens every top-level
+// name (compressed and obfuscated; nothing is left global).
 
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const CLASSIC_SCRIPT = /<script\s+src="([^"]+)"\s*>\s*<\/script>/g;
-const ENTRY = "virtual:app";
-
-function classicScripts() {
-    let scripts = [];
-    return {
-        name: "classic-scripts",
-        apply: "build",
-        transformIndexHtml: {
-            // Before Vite reads the page, swap the plain scripts for the entry
-            order: "pre",
-            handler(html) {
-                scripts = [...html.matchAll(CLASSIC_SCRIPT)].map((m) => m[1]);
-                return html
-                    .replace(CLASSIC_SCRIPT, "")
-                    .replace(
-                        "</body>",
-                        `<script type="module" src="/${ENTRY}"></script></body>`,
-                    );
-            },
-        },
-        resolveId(id) {
-            if (id.endsWith(ENTRY)) return "\0" + ENTRY;
-        },
-        load(id) {
-            if (id !== "\0" + ENTRY) return;
-            const code = scripts.map((f) =>
-                fs.readFileSync(path.join(ROOT, f), "utf8"),
-            );
-            return "(() => {\n" + code.join("\n;\n") + "\n})();\n";
-        },
-    };
-}
 
 // Minifies the built page: comments out, whitespace between tags collapsed
 function minifyHtml() {
@@ -71,7 +33,9 @@ export default defineConfig({
     root: ROOT,
     base: "./", // relative paths, so dist/ works from any folder
     publicDir: false,
-    plugins: [classicScripts(), minifyHtml()],
+    plugins: [minifyHtml()],
+    server: { host: "127.0.0.1", port: 8080, strictPort: true },
+    preview: { host: "127.0.0.1", port: 8081, strictPort: true },
     build: {
         outDir: "dist",
         emptyOutDir: true,

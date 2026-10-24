@@ -1,11 +1,35 @@
+// Startup and the animation loop. The entry module: it imports every other
+// module, in the order they run (tests/helpers/app.js follows this list too).
+
+import {
+    STORAGE_KEY,
+    game,
+    lines,
+    points,
+    roadsChanged,
+    view,
+} from "./state.js";
+import "./geometry.js";
+import "./terrain.js";
+import "./roads.js";
+import { getScene } from "./layout.js";
+import "./scenery.js";
+import "./traffic.js";
+import { lights } from "./lights.js";
+import { stepSim, updateAlerts } from "./sim.js";
+import "./junctions.js";
+import "./vehicles.js";
+import { render, resize } from "./render.js";
+import { load, restoreSave, saveData } from "./storage.js";
+import { updatePanel } from "./inspect.js";
+import { clearSelection, panKeys, updateToolToggles } from "./input.js";
+
 // Simulation timing is shared with render interpolation.
 const FIXED_DT = 1 / 120;
 let accumulator = 0;
-let renderAlpha = 0;
 
-// Startup and the animation loop. Loaded last, once everything else is defined.
 const hasLastGame = load();
-paused = true;
+game.paused = true;
 resize();
 
 const startScreen = document.getElementById("start-screen");
@@ -18,7 +42,7 @@ function enterGame() {
     startMessage.textContent = "";
     startScreen.hidden = true;
     accumulator = 0;
-    paused = false;
+    game.paused = false;
     prevTime = null;
 }
 
@@ -37,14 +61,14 @@ document.getElementById("fresh-game").onclick = () => {
         points.length = 0;
         lines.length = 0;
         roadsChanged();
-        last = null;
+        game.last = null;
         view.x = view.y = 0;
         view.scale = 1;
         lights.clear();
         clearSelection();
-        roadEnabled = false;
-        trafficEnabled = false;
-        autoSaveOnFirstRoad = true;
+        game.roadEnabled = false;
+        game.trafficEnabled = false;
+        game.autoSaveOnFirstRoad = true;
         updateToolToggles();
         getScene();
         resumeGameButton.disabled = true;
@@ -99,20 +123,20 @@ function frame(now) {
     prevTime = now;
     panKeys(dt);
     getScene(); // rebuilds traffic if the roads changed
-    if (paused) {
+    if (game.paused) {
         accumulator = 0;
-        renderAlpha = 1;
+        game.renderAlpha = 1;
     } else {
-        accumulator += dt * simSpeed;
+        accumulator += dt * game.simSpeed;
         while (accumulator >= FIXED_DT) {
-            stepSim(traffic, FIXED_DT);
+            stepSim(game.traffic, FIXED_DT);
             accumulator -= FIXED_DT;
         }
-        renderAlpha = accumulator / FIXED_DT;
+        game.renderAlpha = accumulator / FIXED_DT;
     }
     render();
-    updateAlerts(traffic);
-    updatePanel(traffic);
+    updateAlerts(game.traffic);
+    updatePanel(game.traffic);
     requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
