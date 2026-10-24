@@ -1,5 +1,6 @@
-// Unit tests for scripts/build.js: one HTML, one CSS and one JS file,
-// minified, with the scripts' names shortened, and a page that still starts
+// Unit tests for the Vite build (vite.config.mjs): one HTML, one CSS and one
+// JS file, minified, with the scripts' names shortened, and a page that still
+// starts
 
 const { test, before } = require("node:test");
 const assert = require("node:assert/strict");
@@ -7,13 +8,14 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { loadApp } = require("./helpers/app");
+const { viteBuild } = require("./helpers/build");
 
 const ROOT = path.join(__dirname, "..");
 let out;
 
 before(async () => {
     out = fs.mkdtempSync(path.join(os.tmpdir(), "canvas-build-"));
-    await require("../scripts/build").build(out);
+    await viteBuild(out);
 });
 
 const read = (f) => fs.readFileSync(path.join(out, f), "utf8");
@@ -36,10 +38,10 @@ test("the build writes exactly index.html, app.css and app.js", () => {
 
 test("the HTML loads only the built CSS and JS, and is minified", () => {
     const html = read("index.html");
-    assert.match(html, /<link rel="stylesheet" href="app\.css"/);
+    assert.match(html, /<link rel="stylesheet"[^>]*href="\.\/app\.css"/);
     assert.deepEqual(
-        [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((m) => m[1]),
-        ["app.js"],
+        [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((m) => m[1]),
+        ["./app.js"],
     );
     assert.doesNotMatch(html, /js\/|style\.css/);
     assert.doesNotMatch(html, /<!--/); // comments stripped

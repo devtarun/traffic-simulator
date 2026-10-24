@@ -32,7 +32,7 @@ function hiddenIds(root) {
 // Script paths in the order index.html loads them
 function scriptPaths(root) {
     const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-    return [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((m) =>
+    return [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((m) =>
         path.join(root, m[1]),
     );
 }

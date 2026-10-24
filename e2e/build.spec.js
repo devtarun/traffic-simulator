@@ -1,12 +1,13 @@
-// End-to-end test of the built page (npm run build → dist/): the bundled,
-// minified app.js must work in a real browser. Its names are obfuscated and
-// nothing is global, so this test checks behaviour through the page only.
+// End-to-end test of the built page (npm run build → dist/, made by Vite): the
+// bundled, minified app.js must work in a real browser. Its names are
+// obfuscated and nothing is global, so this test checks behaviour through the
+// page only. Vite's module script runs in strict mode, which this also covers.
 
 const { test, expect } = require("@playwright/test");
-const { build } = require("../scripts/build");
+const { viteBuild } = require("../tests/helpers/build");
 
 test.beforeAll(async () => {
-    await build(); // writes dist/, which the test server also serves
+    await viteBuild(); // writes dist/, which the test server also serves
 });
 
 test("the built page starts a game, builds roads and opens the settings", async ({

@@ -16,10 +16,11 @@ Then open `http://127.0.0.1:8080`. The app runs straight from the source; the lo
 ## Build
 
 ```sh
-npm run build
+npm run build      # writes dist/
+npm run preview    # serves dist/ to try it
 ```
 
-Writes a deployable copy to `dist/`: `index.html`, `app.css` and `app.js`. All the scripts are bundled into `app.js` and minified with esbuild, which also shortens every internal name (compressed and obfuscated); the CSS and HTML are minified too.
+Vite builds a deployable copy in `dist/`: `index.html`, `app.css` and `app.js`. All the scripts are bundled into `app.js` and minified, which also shortens every internal name (compressed and obfuscated); the CSS and HTML are minified too. Serve `dist/` from a web server; the built page can't be opened straight from disk.
 
 ## Tests
 
