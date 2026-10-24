@@ -74,7 +74,6 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('pointerdown', e => {
-  if (canvasPressClosedSettings) { canvasPressClosedSettings = false; return; }
   // While the menu is open, a left or middle press only closes it (no point,
   // no drag); a right click carries on below and may reopen it elsewhere
   if (!menu.hidden) {
@@ -206,9 +205,11 @@ function panKeys(dt) {
 
 function setPaused(p) { paused = p; }
 
-// Settings menu under the gear (top right): Snap, Save and Reset. The
-// simulation pauses while it's open and resumes on close if it was running.
-// It closes on the gear, Escape, or a press anywhere outside it.
+// Settings popup, opened by the gear (top right): Snap, Save, Reset and
+// Resume stacked in the middle of the screen over a blurred backdrop, which
+// covers the canvas. The simulation pauses while it's open and resumes on
+// close if it was running. It closes on Resume, Escape, Reset, or a click
+// on the backdrop.
 const settingsBtn = document.getElementById('settings');
 const settingsMenu = document.getElementById('settings-menu');
 let pausedBeforeSettings = false;
@@ -225,15 +226,9 @@ function closeSettings() {
   setPaused(pausedBeforeSettings);
 }
 settingsBtn.onclick = () => (settingsMenu.hidden ? openSettings() : closeSettings());
+document.getElementById('resume').onclick = closeSettings;
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
-// A press on the canvas that closes the menu does nothing else (no point,
-// no drag), like closing the road type menu
-let canvasPressClosedSettings = false;
-window.addEventListener('pointerdown', e => {
-  if (settingsMenu.hidden || settingsMenu.contains(e.target) || settingsBtn.contains(e.target)) return;
-  closeSettings();
-  canvasPressClosedSettings = e.target === canvas;
-}, true);
+settingsMenu.addEventListener('click', e => { if (e.target === settingsMenu) closeSettings(); }); // the backdrop
 
 // Mode buttons at the bottom: Road builds roads, Traffic manages and
 // inspects traffic. Switching ends any road being drawn and clears selections.

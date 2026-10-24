@@ -11,21 +11,38 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #settings { font-size: 16px; line-height: 1; padding: 5px 10px; }
 #settings[aria-expanded="true"] { background: #e3ecfb; border-color: #9db8e8; }
 
-/* Settings menu under the gear */
+/* Settings popup: a blurred backdrop over everything, with glossy green
+   game-style buttons stacked in the middle */
 .settings {
-  position: fixed; top: 52px; right: 12px; min-width: 150px; padding: 4px;
-  display: flex; flex-direction: column;
-  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #fff; border: 1px solid #ccc; border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 30, 20, 0.25);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .settings[hidden] { display: none; }
+.settings-stack { display: flex; flex-direction: column; gap: 16px; }
 .settings button {
-  padding: 8px 10px; text-align: left; font: inherit;
-  border: 0; border-radius: 5px; background: none; cursor: pointer;
+  position: relative; width: 240px; padding: 13px 0 12px;
+  font: 900 22px/1 "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: #3e6a0b; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(#d2f25a 0%, #a7dd2c 45%, #86c51b 100%);
+  border: 3px solid #4c8410; border-radius: 999px; cursor: pointer;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.45),  /* top shine */
+    inset 0 -4px 0 rgba(40, 80, 0, 0.18),     /* lower shade */
+    0 4px 0 #3b6a0b,                          /* raised edge */
+    0 9px 16px rgba(0, 0, 0, 0.35);           /* drop shadow */
 }
-.settings button:hover { background: #eee; }
-.settings #reset { color: #c0261c; }
+/* Glossy highlights: a white streak at the top left, a dot at the bottom right */
+.settings button::before, .settings button::after {
+  content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.9);
+}
+.settings button::before { left: 18px; top: 6px; width: 24px; height: 9px; transform: rotate(-18deg); }
+.settings button::after { right: 20px; bottom: 8px; width: 7px; height: 7px; background: rgba(255, 255, 255, 0.75); }
+.settings button:hover { filter: brightness(1.06); }
+.settings button:active { transform: translateY(3px); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 0 rgba(40, 80, 0, 0.18), 0 1px 0 #3b6a0b, 0 4px 8px rgba(0, 0, 0, 0.3); }
+.settings button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
 /* Road / Traffic mode buttons, bottom centre */
 .modes {

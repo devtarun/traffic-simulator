@@ -12,9 +12,12 @@
     <button id="settings" title="Settings" aria-label="Settings" aria-expanded="false">⚙</button>
   </div>
   <div id="settings-menu" class="settings" hidden>
-    <button id="snap">Snap: on</button>
-    <button id="save">Save</button>
-    <button id="reset">Reset</button>
+    <div class="settings-stack" role="dialog" aria-label="Settings">
+      <button id="snap">Snap: on</button>
+      <button id="save">Save</button>
+      <button id="reset">Reset</button>
+      <button id="resume">Resume</button>
+    </div>
   </div>
   <div class="modes">
     <button id="mode-road" class="active" title="Build roads">🛣️ Road</button>
