@@ -54,10 +54,23 @@ function laneSpot(car) {
         piece.kind === "turn" ||
         (piece.kind === "drive" && i === 1 && car.s > 0 && car.pieces[1])
     ) {
-        const next = car.pieces[i];
-        return { key: next.key, pos: next.start - (car.cum[i] - car.s) };
+        const j = nextRoad(car, i);
+        if (j < 0) return null;
+        return {
+            key: car.pieces[j].key,
+            pos: car.pieces[j].start - (car.cum[j] - car.s),
+        };
     }
     return null;
+}
+
+// Index of the first road piece at or after pieces[from] (a turn is several
+// short curve pieces), or -1 if there is none
+function nextRoad(car, from) {
+    for (let j = from; j < car.pieces.length; j++)
+        if (car.pieces[j].kind === "road") return j;
+        else if (car.pieces[j].kind !== "turn") return -1;
+    return -1;
 }
 
 // Direction of travel along lane `key` as an angle, ignoring which way
@@ -206,13 +219,13 @@ function stepSim(t, dt) {
                 piece.kind === "road" &&
                 car.pieces[i] &&
                 car.pieces[i].kind === "turn" &&
-                car.pieces[i + 1]
+                nextRoad(car, i) > 0
             ) {
                 const toEnd = car.cum[i] - car.s;
                 if (toEnd < LOOKAHEAD) {
-                    const next = car.pieces[i + 1];
-                    const joinLen = car.cum[i + 1] - car.cum[i];
-                    const here = next.start - joinLen - toEnd; // this car's position in the next lane's terms
+                    const jn = nextRoad(car, i);
+                    const next = car.pieces[jn];
+                    const here = next.start - (car.cum[jn] - car.s); // this car's position in the next lane's terms
                     const ahead = (lanes.get(next.key) || []).find(
                         (c) => c.car !== car && c.pos > here,
                     );
@@ -258,14 +271,18 @@ function stepSim(t, dt) {
             }
         }
 
-        // Stop line before a junction box, until allowed in
+        // Stop line before a junction box, until allowed in. The road piece
+        // may end before the junction point, where the turn's curve begins:
+        // piece.tail is how far before the point it ends.
         const turn = car.pieces[i];
         const j =
             piece.kind === "road" && turn && turn.kind === "turn"
                 ? t.junctions.get(turn.node)
                 : null;
-        if (j && car.permit !== j.node) {
-            const stopS = car.cum[i] - j.clear - CAR_LEN / 2;
+        const exit = j ? car.pieces[nextRoad(car, i)] : null;
+        if (j && exit && car.permit !== j.node) {
+            const stopS =
+                car.cum[i] + (piece.tail || 0) - j.clear - CAR_LEN / 2;
             if (car.s > stopS + 0.5)
                 car.permit = j.node; // already past it (e.g. placed there at start)
             else {
@@ -295,7 +312,7 @@ function stepSim(t, dt) {
                             car,
                             j,
                             piece.key,
-                            car.pieces[i + 1],
+                            exit,
                             lanes,
                             driving,
                             stopS - car.s,
@@ -304,7 +321,7 @@ function stepSim(t, dt) {
                         car.permit = j.node;
                         car.box = j.node;
                         car.boxFrom = piece.key;
-                        car.boxExit = car.pieces[i + 1].key;
+                        car.boxExit = exit.key;
                         car.waitingAt = null;
                         j.lastMove = simTime;
                     }

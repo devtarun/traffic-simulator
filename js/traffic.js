@@ -247,10 +247,12 @@ function lineLength(k) {
 // - path: the points to drive through
 // - speed[i]: the ROAD_SPEED multiplier for the piece from path[i] to path[i + 1]
 // - pieces[i]: what that piece is: { kind: 'drive' } for a driveway,
-//   { kind: 'turn', node } for the join at a point, or { kind: 'road', key,
-//   start } for a stretch of lane. key names the lane (line:dir:lane, see
-//   laneKey()); start is how far along the lane, in travel direction, the
-//   stretch begins.
+//   { kind: 'turn', node } for part of the curve at a point (curveTurns()
+//   splits each turn into CURVE_STEPS of them), or { kind: 'road', key,
+//   start, tail } for a stretch of lane. key names the lane (line:dir:lane,
+//   see laneKey()); start is how far along the lane, in travel direction, the
+//   stretch begins; tail is how far before the lane's end point it stops,
+//   where a curve takes over.
 function route(t, from, to, lane) {
     const A = lines[from.seg],
         B = lines[to.seg];
@@ -372,7 +374,63 @@ function route(t, from, to, lane) {
     path.push(door(to));
     speed.push(ROAD_SPEED[1]);
     pieces.push({ kind: "drive" });
+    curveTurns(t, path, speed, pieces);
     return { path, speed, pieces };
+}
+
+const CURVE_STEPS = 6; // straight pieces a turn's curve is split into
+
+// Replaces each turn's sharp corner with a curve, in place. A turn joins the
+// end of one lane to the start of the next; the curve starts `radius` before
+// the point where the two lane lines meet, bends through it (a quadratic
+// Bézier with that point as control), and rejoins the next lane `radius`
+// after it. The road piece before is shortened (its `tail` records how far
+// before its original end it now stops) and the one after starts later (its
+// `start` grows), so lane positions stay true. At a junction the curve is
+// kept short enough to start after the stop line, so stopping and right of
+// way still happen on the straight approach. Straight-on joins are left alone.
+function curveTurns(t, path, speed, pieces) {
+    const unit = (a, b) => {
+        const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        return { x: (b.x - a.x) / L, y: (b.y - a.y) / L, L };
+    };
+    for (let k = pieces.length - 2; k >= 1; k--) {
+        const before = pieces[k - 1],
+            turn = pieces[k],
+            after = pieces[k + 1];
+        if (turn.kind !== "turn" || before.kind !== "road" || after.kind !== "road")
+            continue;
+        const s0 = path[k - 1], e0 = path[k], s1 = path[k + 1], e1 = path[k + 2];
+        const u0 = unit(s0, e0), u1 = unit(s1, e1);
+        const cross = u0.x * u1.y - u0.y * u1.x;
+        if (Math.abs(cross) < 0.05) continue; // straight on
+        // Where the lane lines meet: e0 + u0·a = s1 + u1·b
+        const d = { x: s1.x - e0.x, y: s1.y - e0.y };
+        const a = (d.x * u1.y - d.y * u1.x) / cross;
+        const b = (d.x * u0.y - d.y * u0.x) / cross;
+        const C = { x: e0.x + u0.x * a, y: e0.y + u0.y * a };
+        const j = t.junctions && t.junctions.get(turn.node);
+        // At a junction the curve must start inside the box, after the stop
+        // line (clear before the point, plus half a car)
+        const limit = j ? j.clear - CAR_LEN / 2 - 1 + a : ROAD_WIDTH / 2;
+        const radius = Math.min(limit, 0.45 * (u0.L + a), 0.45 * (u1.L - b));
+        if (radius < 2) continue;
+        const A = { x: C.x - u0.x * radius, y: C.y - u0.y * radius };
+        const B = { x: C.x + u1.x * radius, y: C.y + u1.y * radius };
+        const curve = [];
+        for (let q = 1; q < CURVE_STEPS; q++) {
+            const f = q / CURVE_STEPS, g = 1 - f;
+            curve.push({
+                x: g * g * A.x + 2 * g * f * C.x + f * f * B.x,
+                y: g * g * A.y + 2 * g * f * C.y + f * f * B.y,
+            });
+        }
+        path.splice(k, 2, A, ...curve, B);
+        pieces.splice(k, 1, ...Array.from({ length: CURVE_STEPS }, () => ({ kind: "turn", node: turn.node })));
+        speed.splice(k, 1, ...Array(CURVE_STEPS).fill(ROAD_SPEED[1]));
+        before.tail = (before.tail || 0) + radius - a; // e0 - A = u0·(radius - a)
+        after.start += b + radius; // B - s1 = u1·(b + radius)
+    }
 }
 
 // Name of lane `lane` (0 = next to the center line) of line k, for travel in
