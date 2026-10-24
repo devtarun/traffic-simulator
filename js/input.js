@@ -210,7 +210,7 @@ const speedBtn = document.getElementById('speed');
 const SPEED_NAMES = { 1: 'Normal speed', 2: '2× speed', 3: '3× speed' };
 speedBtn.onclick = () => {
   simSpeed = simSpeed % 3 + 1;
-  speedBtn.textContent = '▶'.repeat(simSpeed);
+  speedBtn.textContent = '❯'.repeat(simSpeed);
   speedBtn.title = `${SPEED_NAMES[simSpeed]} (click for ${SPEED_NAMES[simSpeed % 3 + 1].toLowerCase()})`;
   speedBtn.setAttribute('aria-label', 'Simulation speed: ' + SPEED_NAMES[simSpeed].toLowerCase());
   speedBtn.classList.toggle('fast', simSpeed > 1);
