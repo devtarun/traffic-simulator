@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .controls { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; }
+  .controls button {
+    font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;
+    background: #fafafa; cursor: pointer;
+  }
+  .controls button:hover { background: #eee; }
+</style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="controls">
+    <button id="save">Save</button>
+    <button id="reset">Reset</button>
+  </div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const STORAGE_KEY = 'canvas-state';
+  const points = [];
+  const lines = [];      // pairs of indices into points
+  const RADIUS = 4;
+  const ROAD_WIDTH = 24;
+  const HIT = 20;        // pointer within this many px of a point snaps to it
+  let last = null;       // index of the most recently clicked point
+  let pointer = null;    // current pointer position, or null when outside
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function hitTest(p) {
+    let best = null, bestDist = HIT;
+    points.forEach((q, i) => {
+      const d = Math.hypot(q.x - p.x, q.y - p.y);
+      if (d <= bestDist) { best = i; bestDist = d; }
+    });
+    return best;
+  }
+
+  function line(a, b) {
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  // Each pass is drawn for every road before the next, so overlapping roads
+  // merge into clean junctions instead of one road's edge cutting across another.
+  function roads() {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([]);
+    [[ROAD_WIDTH, '#3a3a3a'], [ROAD_WIDTH - 4, '#f2f2f2'], [ROAD_WIDTH - 7, '#3a3a3a']].forEach(([w, c]) => {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = c;
+      lines.forEach(([a, b]) => line(points[a], points[b]));
+    });
+    // Dashed center line, stopped short of the ends to keep junctions clear
+    ctx.lineCap = 'butt';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#f5c518';
+    ctx.setLineDash([10, 10]);
+    lines.forEach(([a, b]) => {
+      const p = points[a], q = points[b];
+      const len = Math.hypot(q.x - p.x, q.y - p.y);
+      const t = ROAD_WIDTH / 2 / len;
+      if (t >= 0.5) return;
+      line({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t },
+           { x: q.x - (q.x - p.x) * t, y: q.y - (q.y - p.y) * t });
+    });
+    ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    roads();
+    ctx.lineWidth = 2;
+    if (last !== null && pointer) {
+      ctx.strokeStyle = '#999';
+      ctx.setLineDash([6, 6]);
+      line(points[last], pointer);
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle = '#000';
+    points.forEach(p => {
+      ctx.beginPath(); ctx.arc(p.x, p.y, RADIUS, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  // Match the backing store to CSS size × devicePixelRatio so drawing stays sharp.
+  // Resizing clears the canvas, so redraw everything afterwards.
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+  window.addEventListener('resize', resize);
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!s) return;
+      points.push(...s.points);
+      lines.push(...s.lines);
+      last = s.last;
+    } catch (err) {
+      console.warn('Could not load saved canvas', err);
+    }
+  }
+  load();
+  resize();
+
+  function connect(a, b) {
+    if (a === null || a === b) return;
+    const exists = lines.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+    if (!exists) lines.push([a, b]);
+  }
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  canvas.addEventListener('pointerdown', e => {
+    // Right click ends the current chain, removing the dashed preview
+    if (e.button === 2) { last = null; render(); return; }
+    if (e.button !== 0) return;
+    const p = pos(e);
+    let i = hitTest(p);
+    if (i === null) { points.push(p); i = points.length - 1; }
+    connect(last, i);
+    last = i;
+    pointer = points[i];
+    render();
+  });
+  canvas.addEventListener('pointermove', e => {
+    const p = pos(e);
+    const i = hitTest(p);
+    pointer = i === null ? p : points[i];
+    render();
+  });
+  canvas.addEventListener('pointerleave', () => { pointer = null; render(); });
+
+  document.getElementById('reset').onclick = () => {
+    points.length = 0; lines.length = 0; last = null;
+    render();
+  };
+
+  const saveBtn = document.getElementById('save');
+  saveBtn.onclick = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, lines, last }));
+      saveBtn.textContent = 'Saved';
+    } catch (err) {
+      console.warn('Could not save canvas', err);
+      saveBtn.textContent = 'Save failed';
+    }
+    setTimeout(() => { saveBtn.textContent = 'Save'; }, 1200);
+  };
+</script>
+</body>
+</html>
