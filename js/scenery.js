@@ -58,10 +58,11 @@ function tree({ c, r, shade }) {
   const disc = (x, y, rad) => { ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill(); };
   ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
   disc(c.x + 2.5, c.y + 2.5, r);
-  const h = 95 + shade * 30, l = 30 + shade * 8;
-  ctx.fillStyle = `hsl(${h}, 40%, ${l}%)`;
+  // Darker and more saturated than the grass, so trees stand out on it
+  const h = 100 + shade * 30, l = 24 + shade * 8;
+  ctx.fillStyle = `hsl(${h}, 45%, ${l}%)`;
   disc(c.x, c.y, r);
-  ctx.fillStyle = `hsl(${h}, 40%, ${l + 10}%)`;
+  ctx.fillStyle = `hsl(${h}, 45%, ${l + 10}%)`;
   disc(c.x + LIGHT.x * r * 0.3, c.y + LIGHT.y * r * 0.3, r * 0.6);
 }
 

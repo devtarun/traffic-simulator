@@ -1,4 +1,4 @@
-html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #a9cf8f; /* matches GRASS in terrain.js */ }
 canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .controls { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; }
 .controls button {

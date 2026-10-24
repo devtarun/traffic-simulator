@@ -12,6 +12,7 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   toWorld(ctx);
+  terrain(ctx);
   const { boxes, trees } = getScene();
   boxes.forEach(b => (b.office ? office(b) : house(b)));
   trees.forEach(tree);
@@ -37,21 +38,13 @@ function render() {
     ctx.beginPath(); ctx.arc(end.x, end.y, 5 / view.scale, 0, Math.PI * 2); ctx.fill();
   });
   ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
-  // Cars on the road; ones parked inside a building aren't drawn
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-  traffic.cars.forEach(car => {
-    if (!car.path) return;
-    const p = carPos(car);
-    ctx.fillStyle = car.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y, CAR_RADIUS, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  });
+  drawCars(ctx);
   // Rings around the shown cars
   ctx.strokeStyle = 'rgba(90, 190, 255, 0.9)';
   ctx.lineWidth = 2 / view.scale;
   shown.forEach(car => {
     const p = carPos(car);
-    ctx.beginPath(); ctx.arc(p.x, p.y, CAR_RADIUS + 3 / view.scale, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x, p.y, CAR_LEN / 2 + 3 / view.scale, 0, Math.PI * 2); ctx.stroke();
   });
   if (last !== null && pointer) {
     lctx.setTransform(1, 0, 0, 1, 0, 0);

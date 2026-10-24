@@ -4,7 +4,6 @@
 // can only turn where roads share a point. Each car belongs to a house and
 // shuttles between it and offices it can reach, pausing inside each building.
 
-const CAR_RADIUS = 3;
 const CARS_PER_HOUSE = 2;
 const MAX_CARS = 250;
 const CAR_COLORS = ['#e63946', '#f1faee', '#ffb703', '#219ebc', '#8ecae6', '#fb8500', '#2a9d8f', '#ffffff'];

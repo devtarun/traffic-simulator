@@ -116,7 +116,8 @@ function roads(c, segs) {
   c.lineCap = 'round';
   c.lineJoin = 'round';
   c.setLineDash([]);
-  [[0, '#3a3a3a'], [4, '#f2f2f2'], [7, '#3a3a3a']].forEach(([inset, color]) => {
+  // Kerb, asphalt, then a thin white edge line inset from each side
+  [[0, '#bdb8ab'], [3, '#2e3033'], [7, '#e6e6df'], [9, '#2e3033']].forEach(([inset, color]) => {
     c.strokeStyle = color;
     runs.forEach(({ pts, lanes, closed }) => {
       c.lineWidth = roadWidth(lanes) - inset;
@@ -144,9 +145,9 @@ function roads(c, segs) {
       c.setLineDash(dash);
       polyline(offsetPath(center, off, closed), c, closed);
     };
-    [-1.5, 1.5].forEach(off => marking(off, 1.5, '#f5c518', []));
+    [-1.2, 1.2].forEach(off => marking(off, 1, '#f2c230', []));
     for (let k = 1; k < lanes; k++) {
-      [-1, 1].forEach(side => marking(side * k * LANE_W, 1.5, '#e8e8e8', [8, 10]));
+      [-1, 1].forEach(side => marking(side * k * LANE_W, 1, 'rgba(240, 240, 232, 0.9)', [6, 9]));
     }
   });
   c.setLineDash([]);
