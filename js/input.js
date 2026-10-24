@@ -7,6 +7,7 @@ function connect(a, b) {
 // Removes point i and its lines, shifting later indices down to match
 function remove(i) {
   points.splice(i, 1);
+  roadsChanged();
   const kept = lines.filter(([a, b]) => a !== i && b !== i)
     .map(([a, b, lanes]) => [a > i ? a - 1 : a, b > i ? b - 1 : b, lanes]);
   lines.length = 0;
@@ -153,6 +154,7 @@ canvas.addEventListener('pointerup', e => {
   let { p, i, split } = target(pos(e));
   if (i === null) {
     points.push(p); i = points.length - 1;
+    roadsChanged();
     if (split != null) splitLine(split, i); // joined onto a road: T-junction
   }
   connect(last, i);
@@ -279,6 +281,7 @@ snapBtn.onclick = () => {
 
 document.getElementById('reset').onclick = () => {
   points.length = 0; lines.length = 0; last = null;
+  roadsChanged();
   lights.clear();
   closeSettings();
   render();

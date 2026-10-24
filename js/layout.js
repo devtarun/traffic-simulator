@@ -66,10 +66,11 @@ function layout() {
 }
 
 // Boxes and trees only change when the roads do, so cache them between
-// renders; traffic is rebuilt along with them
+// renders; traffic is rebuilt along with them. The key is roadsVersion, plus
+// the counts as a safety net for any change that didn't call roadsChanged().
 let sceneKey = '', scene = { boxes: [], trees: [] };
 function getScene() {
-  const key = JSON.stringify([points, lines]);
+  const key = roadsVersion + ':' + points.length + ':' + lines.length;
   if (key !== sceneKey) { sceneKey = key; scene = layout(); traffic = makeTraffic(scene); selectedCar = selectedBox = selectedJunction = selectedRoad = null;
     // Drop signals whose junction is gone
     const keep = new Set([...traffic.junctions.keys()].map(posKey));

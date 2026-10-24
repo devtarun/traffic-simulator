@@ -17,11 +17,13 @@ function crossing(p, q, r, s) {
 function addLine(a, b, lanes) {
   if (a === b || lines.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) return;
   lines.push([a, b, lanes]);
+  roadsChanged();
 }
 
 // Replaces line k with two lines meeting at point m, keeping its type
 function splitLine(k, m) {
   const [a, b, lanes] = lines.splice(k, 1)[0];
+  roadsChanged();
   addLine(a, m, lanes);
   addLine(m, b, lanes);
 }
@@ -47,7 +49,7 @@ function junctionize() {
         const x = crossing(points[a], points[b], points[c], points[d]);
         if (!x) continue;
         let k = points.findIndex(pt => Math.hypot(pt.x - x.x, pt.y - x.y) < 0.5);
-        if (k < 0) { points.push(x); k = points.length - 1; }
+        if (k < 0) { points.push(x); k = points.length - 1; roadsChanged(); }
         splitLine(j, k); // j first: it's later in lines, so i's index is unaffected
         splitLine(i, k);
         changed = true;

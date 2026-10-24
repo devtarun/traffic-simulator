@@ -7,6 +7,7 @@ function load() {
     points.push(...s.points);
     // Older saves have no road type; they were drawn as 4-lane roads
     lines.push(...s.lines.map(([a, b, lanes]) => [a, b, lanes ?? MAX_LANES]));
+    roadsChanged();
     last = s.last;
     if (s.view) Object.assign(view, s.view); // older saves have no view
     junctionize(); // older saves may have roads crossing without a junction
