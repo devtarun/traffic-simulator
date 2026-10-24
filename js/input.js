@@ -64,9 +64,12 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('pointerdown', e => {
-  // Any press on the canvas closes the menu and then does its usual job, so
-  // ending a road and starting the next doesn't need an extra click
-  closeMenu();
+  // While the menu is open, a left or middle press only closes it (no point,
+  // no drag); a right click carries on below and may reopen it elsewhere
+  if (!menu.hidden) {
+    closeMenu();
+    if (e.button !== 2) return;
+  }
   // Right click on a point removes it; elsewhere it ends the current chain
   // and opens the road type menu. Either way, points left with no roads go too.
   if (e.button === 2) {
