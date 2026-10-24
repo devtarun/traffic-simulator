@@ -19,6 +19,16 @@ const vm = require("node:vm");
 
 const ROOT = path.join(__dirname, "..", "..");
 
+// Ids of elements index.html marks hidden, so they start hidden here too
+function hiddenIds() {
+    const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+    return new Set(
+        [...html.matchAll(/<[^>]*\bhidden\b[^>]*>/g)]
+            .map((m) => (m[0].match(/\bid="([^"]+)"/) || [])[1])
+            .filter(Boolean),
+    );
+}
+
 // Script paths in the order index.html loads them
 function scriptPaths() {
     const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -107,8 +117,15 @@ function fakeElement(id) {
 // quiet: silence console.warn, for tests that trigger an expected warning
 function loadApp({ storage = {}, quiet = false } = {}) {
     const elements = {};
+    const startHidden = hiddenIds();
     const document = {
-        getElementById: (id) => (elements[id] ||= fakeElement(id)),
+        getElementById: (id) => {
+            if (!elements[id]) {
+                elements[id] = fakeElement(id);
+                elements[id].hidden = startHidden.has(id);
+            }
+            return elements[id];
+        },
         createElement: (tag) => fakeElement(tag),
         querySelector: (q) => fakeElement(q),
         querySelectorAll: () => [],
@@ -135,7 +152,11 @@ function loadApp({ storage = {}, quiet = false } = {}) {
         devicePixelRatio: 1,
         innerWidth: 1400,
         innerHeight: 900,
-        addEventListener() {},
+        // window listeners (keys, resize) are kept so tests can fire them
+        windowListeners: {},
+        addEventListener(type, f) {
+            (this.windowListeners[type] ||= []).push(f);
+        },
         Blob: class {},
         URL: { createObjectURL: () => "", revokeObjectURL() {} },
     };
@@ -185,6 +206,14 @@ function loadApp({ storage = {}, quiet = false } = {}) {
             pointer("pointerup", x, y, 0);
         },
         rightClick: (x, y) => pointer("pointerdown", x, y, 2),
+        // Any canvas pointer or wheel event, e.g. canvasEvent('pointermove', { clientX, clientY })
+        canvasEvent: (type, e) =>
+            canvas.dispatch(type, { pointerId: 1, preventDefault() {}, ...e }),
+        // A window event such as 'keydown', through the listeners the app added
+        windowEvent: (type, e) =>
+            (sandbox.windowListeners[type] || []).forEach((f) =>
+                f({ preventDefault() {}, ...e }),
+            ),
     };
 }
 
