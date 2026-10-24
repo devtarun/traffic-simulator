@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A canvas road editor with procedurally placed houses, offices, trees and traffic. There is no build step and the page has no runtime dependencies; `package.json` only holds dev tools (Prettier, `http-server`). Run it by opening `index.html` in a browser (or `npm run dev`, or any static server).
+A canvas road editor with procedurally placed houses, offices, trees and traffic. The page runs straight from the source and has no runtime dependencies; `package.json` only holds dev tools (Prettier, `http-server`, Playwright, esbuild). Run it by opening `index.html` in a browser (or `npm run dev`, or any static server).
+
+**Build:** `npm run build` (`scripts/build.js`) writes `dist/` (git-ignored): `index.html` (comments stripped, whitespace between tags collapsed, pointing at the two files below), `app.css` (minified) and `app.js`. `app.js` is every script from `index.html`, in its order, wrapped in one function and minified by esbuild for `TARGET` browsers; the wrapping turns the scripts' shared globals into locals, so every name is shortened and nothing is global in the built page. Keep scripts free of anything that relies on their names being globals (inline `on…=` handlers, `window.name` lookups), or the build breaks it. `tests/build.test.js` and `e2e/build.spec.js` cover the build.
 
 ## Development process: TDD (always)
 

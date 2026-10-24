@@ -20,8 +20,8 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..", "..");
 
 // Ids of elements index.html marks hidden, so they start hidden here too
-function hiddenIds() {
-    const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+function hiddenIds(root) {
+    const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
     return new Set(
         [...html.matchAll(/<[^>]*\bhidden\b[^>]*>/g)]
             .map((m) => (m[0].match(/\bid="([^"]+)"/) || [])[1])
@@ -30,10 +30,10 @@ function hiddenIds() {
 }
 
 // Script paths in the order index.html loads them
-function scriptPaths() {
-    const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+function scriptPaths(root) {
+    const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
     return [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((m) =>
-        path.join(ROOT, m[1]),
+        path.join(root, m[1]),
     );
 }
 
@@ -115,9 +115,11 @@ function fakeElement(id) {
 }
 
 // quiet: silence console.warn, for tests that trigger an expected warning
-function loadApp({ storage = {}, quiet = false } = {}) {
+// root: the folder whose index.html to load (the source by default; a build
+// output folder to test the built page)
+function loadApp({ storage = {}, quiet = false, root = ROOT } = {}) {
     const elements = {};
-    const startHidden = hiddenIds();
+    const startHidden = hiddenIds(root);
     const document = {
         getElementById: (id) => {
             if (!elements[id]) {
@@ -164,7 +166,7 @@ function loadApp({ storage = {}, quiet = false } = {}) {
     const context = vm.createContext(sandbox);
     // One script per file, like the browser: they share the context's global
     // scope, and errors point at the real file and line
-    for (const p of scriptPaths()) {
+    for (const p of scriptPaths(root)) {
         vm.runInContext(fs.readFileSync(p, "utf8"), context, { filename: p });
     }
     // Builds a road through world points ([x, y] pairs), reusing a point

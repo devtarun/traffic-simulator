@@ -11,7 +11,22 @@ npm install
 npm run dev
 ```
 
-Then open `http://127.0.0.1:8080`. The app has no build step; the local server is only for development.
+Then open `http://127.0.0.1:8080`. The app runs straight from the source; the local server is only for development.
+
+## Build
+
+```sh
+npm run build
+```
+
+Writes a deployable copy to `dist/`: `index.html`, `app.css` and `app.js`. All the scripts are bundled into `app.js` and minified with esbuild, which also shortens every internal name (compressed and obfuscated); the CSS and HTML are minified too.
+
+## Tests
+
+```sh
+npm test            # unit tests (Node's built-in runner)
+npm run test:e2e    # end-to-end tests in Chrome (Playwright)
+```
 
 ## Start screen and backups
 
