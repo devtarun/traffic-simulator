@@ -166,10 +166,13 @@
   }
 
   // Lays boxes along both sides of every road, left to right from CLEAR px
-  // past each end, skipping any that would cover a road, a point or a box
+  // past each end, skipping any that would cover a road, a point or a box.
+  // Then puts a tree in the gap after each placed box where one fits. Trees
+  // go in after all boxes, so they never change where boxes land.
   function layout() {
     const segs = lines.map(([a, b]) => [points[a], points[b]]);
     const placed = [];
+    const gaps = [];       // middle of the gap after each placed box, on the road edge
     const CLEAR = ROAD_WIDTH, SETBACK = 4;
     segs.forEach(([p, q]) => {
       const L = Math.hypot(q.x - p.x, q.y - p.y);
@@ -192,12 +195,30 @@
           const clear = segs.every(([a, c]) => segBoxDist(box, a, c) >= min)
             && points.every(pt => segBoxDist(box, pt, pt) >= min)
             && placed.every(o => !boxesOverlap(box, o, SETBACK));
-          if (clear) placed.push(box);
+          if (clear) {
+            placed.push(box);
+            const g = t + w + BOX_GAP / 2;
+            if (g < L - CLEAR) gaps.push({ x: p.x + u.x * g, y: p.y + u.y * g, n });
+          }
           t += w + BOX_GAP;
         }
       });
     });
-    return placed;
+
+    const trees = [];
+    gaps.forEach(g => {
+      const rand = rng(hash(g.x * 10, g.y * 10, g.n.x * 10, g.n.y * 10));
+      const r = 5.5 + rand() * 2; // at most 15px across, to fit the 20px gap
+      const off = ROAD_WIDTH / 2 + SETBACK + r + rand() * 10;
+      const c = { x: g.x + g.n.x * off, y: g.y + g.n.y * off };
+      const min = ROAD_WIDTH / 2 + SETBACK + r - 0.5;
+      const clear = segs.every(([a, b]) => pointSegDist(c, a, b) >= min)
+        && points.every(pt => Math.hypot(pt.x - c.x, pt.y - c.y) >= min)
+        && placed.every(b => segBoxDist(b, c, c) >= r + 1)
+        && trees.every(o => Math.hypot(o.c.x - c.x, o.c.y - c.y) >= o.r + r + 1);
+      if (clear) trees.push({ c, r, shade: rand() });
+    });
+    return { boxes: placed, trees };
   }
 
   const ROOFS = [[12, 55, 48], [210, 12, 45], [25, 35, 40], [0, 45, 40], [100, 18, 40]]; // HSL
@@ -252,12 +273,25 @@
     ctx.lineJoin = 'miter';
   }
 
-  // Boxes only change when the roads do, so cache them between renders
-  let boxKey = '', boxes = [];
-  function getBoxes() {
+  // Draws a tree seen from above: a shadow, a round canopy and a highlight on
+  // the side facing LIGHT
+  function tree({ c, r, shade }) {
+    const disc = (x, y, rad) => { ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill(); };
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    disc(c.x + 2.5, c.y + 2.5, r);
+    const h = 95 + shade * 30, l = 30 + shade * 8;
+    ctx.fillStyle = `hsl(${h}, 40%, ${l}%)`;
+    disc(c.x, c.y, r);
+    ctx.fillStyle = `hsl(${h}, 40%, ${l + 10}%)`;
+    disc(c.x + LIGHT.x * r * 0.3, c.y + LIGHT.y * r * 0.3, r * 0.6);
+  }
+
+  // Boxes and trees only change when the roads do, so cache them between renders
+  let sceneKey = '', scene = { boxes: [], trees: [] };
+  function getScene() {
     const key = JSON.stringify([points, lines]);
-    if (key !== boxKey) { boxKey = key; boxes = layout(); }
-    return boxes;
+    if (key !== sceneKey) { sceneKey = key; scene = layout(); }
+    return scene;
   }
 
   function render() {
@@ -267,7 +301,9 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     toWorld(ctx);
-    getBoxes().forEach(house);
+    const { boxes, trees } = getScene();
+    boxes.forEach(house);
+    trees.forEach(tree);
     roads(ctx, lines.map(([a, b]) => [points[a], points[b]]));
     if (last !== null && pointer) {
       lctx.setTransform(1, 0, 0, 1, 0, 0);
