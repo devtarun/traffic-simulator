@@ -4,7 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A single-file blank canvas: everything (markup, CSS, JS) lives in `index.html`. There is no build step, package manager, linter, or test suite, and no external dependencies. Run it by opening `index.html` in a browser (or serving the folder with any static server, e.g. `npx serve .` or `python -m http.server`).
+A canvas road editor with procedurally placed houses, offices, trees and traffic. There is no build step, package manager, linter, or test suite, and no external dependencies. Run it by opening `index.html` in a browser (or serving the folder with any static server, e.g. `npx serve .` or `python -m http.server`).
+
+## Files
+
+`index.html` holds the markup and loads `style.css` and the scripts in `js/`. The scripts are plain `<script src>` tags sharing one global scope, not ES modules, so the page still works opened straight from disk (Chrome blocks modules over `file://`). Top-level `const`/`let`/functions in one file are visible to the others. Load order matters, because top-level code runs as each file loads: anything a file runs immediately must be defined by an earlier file. Startup calls live in `main.js`, which is last.
+
+| File | Contents |
+|---|---|
+| `js/state.js` | Constants/settings, shared state (`points`, `lines`, `last`, `pointer`, `snap`, `view`, `drag`), `screenPos()`, `pos()`, `hitTest()` |
+| `js/geometry.js` | `rng()`, `hash()`, oriented-box helpers (`local`, `corners`, `segBoxDist`, `boxesOverlap`), `pointSegDist()` |
+| `js/roads.js` | `line()`, `roads()` |
+| `js/layout.js` | `layout()` (boxes, offices, trees), `getScene()` cache |
+| `js/scenery.js` | `house()`, `office()`, `tree()` drawing |
+| `js/traffic.js` | Road graph, `route()`, cars (`makeTraffic`, `depart`, `stepCar`, `carPos`) |
+| `js/render.js` | Preview `layer`, `render()`, `resize()` |
+| `js/storage.js` | `load()`, Save button |
+| `js/input.js` | `connect()`, `remove()`, `target()`, pointer/wheel handlers, Snap and Reset buttons |
+| `js/main.js` | Startup (`load()`, `resize()`) and the animation loop; must load last |
 
 ## Architecture notes
 
