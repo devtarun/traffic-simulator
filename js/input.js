@@ -67,7 +67,7 @@ function openMenu(e) {
 }
 function closeMenu() { menu.hidden = true; }
 menu.querySelectorAll('button').forEach(b => {
-  b.onclick = () => { roadLanes = +b.dataset.lanes; closeMenu(); render(); };
+  b.onclick = () => { roadLanes = +b.dataset.lanes; closeMenu(); };
 });
 menu.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
@@ -82,7 +82,7 @@ canvas.addEventListener('pointerdown', e => {
     if (e.button !== 2) return;
   }
   // In Traffic mode, right click just clears the selection
-  if (e.button === 2 && mode === 'traffic') { clearSelection(); render(); return; }
+  if (e.button === 2 && mode === 'traffic') { clearSelection(); return; }
   // Right click on a point removes it; elsewhere it ends the current chain
   // and opens the road type menu. Either way, points left with no roads go too.
   if (e.button === 2) {
@@ -95,7 +95,6 @@ canvas.addEventListener('pointerdown', e => {
       pointer = pos(e);
     }
     prune();
-    render();
     return;
   }
   // Left or middle press: a drag pans the view; a left click adds a point on release
@@ -120,7 +119,6 @@ canvas.addEventListener('pointermove', e => {
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
-  render();
 });
 canvas.addEventListener('pointerup', e => {
   if (!drag) return;
@@ -142,13 +140,12 @@ canvas.addEventListener('pointerup', e => {
     if (k !== null && traffic.junctions.has(k)) {
       toggleLight(k);
       selectedJunction = k;
-      render(); return;
+      return;
     }
     // A road: select it to show its traffic flow
     const road = selectedCar ? null : roadUnder(w);
-    if (road !== null) { selectedRoad = road; render(); return; }
+    if (road !== null) { selectedRoad = road; return; }
     selectedBox = selectedCar ? null : boxAt(w);
-    render();
     return;
   }
   let { p, i, split } = target(pos(e));
@@ -161,7 +158,6 @@ canvas.addEventListener('pointerup', e => {
   junctionize(); // the new road may cross others
   last = i;
   pointer = points[i];
-  render();
 });
 canvas.addEventListener('pointercancel', () => { drag = null; canvas.style.cursor = ''; });
 
@@ -176,9 +172,8 @@ canvas.addEventListener('wheel', e => {
   view.y = s.y - (s.y - view.y) * scale / view.scale;
   view.scale = scale;
   pointer = target(pos(e)).p;
-  render();
 }, { passive: false });
-canvas.addEventListener('pointerleave', () => { pointer = null; pointerScreen = null; render(); });
+canvas.addEventListener('pointerleave', () => { pointer = null; pointerScreen = null; });
 
 // WASD pans the view while held: W up, A left, S down, D right. Keys are
 // tracked here and applied each frame by panKeys(), so movement is smooth.
@@ -255,7 +250,6 @@ function setMode(m) {
   last = null;
   prune();
   canvas.style.cursor = '';
-  render();
 }
 // Traffic − / +: change the number of cars by 10% of normal, with a toast
 function adjustTraffic(delta) {
@@ -284,5 +278,4 @@ document.getElementById('reset').onclick = () => {
   roadsChanged();
   lights.clear();
   closeSettings();
-  render();
 };

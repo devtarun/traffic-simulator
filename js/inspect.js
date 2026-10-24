@@ -62,7 +62,6 @@ const toasts = document.getElementById('toasts');
 function centerOn(p) {
   view.x = canvas.clientWidth / 2 - p.x * view.scale;
   view.y = canvas.clientHeight / 2 - p.y * view.scale;
-  render();
 }
 
 // Shows a toast with a bold title and a smaller line under it. kind picks
