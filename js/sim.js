@@ -64,12 +64,6 @@ function compatible(keyA, keyB) {
   return Math.min(d, Math.PI - d) < Math.PI / 6;
 }
 
-// Whether lane `key` has room for a car at position pos (nothing within a car
-// length either side, and nothing just behind about to arrive), ignoring `self`
-function laneRoom(lanes, key, pos, self, behind = CAR_LEN + MIN_GAP) {
-  return !(lanes.get(key) || []).some(c => c.car !== self && c.pos > pos - behind - CAR_LEN && c.pos < pos + CAR_LEN + MIN_GAP);
-}
-
 // Whether car may enter junction j now. `approach` is its lane into the box,
 // exit = { key, start } its lane out; stopDist is how far it is from the stop line.
 function canEnter(car, j, approach, exit, lanes, cars, stopDist) {
@@ -172,12 +166,19 @@ function stepSim(t, dt) {
     // there and nothing close behind. Once it goes, it's added to that lane's
     // index straight away, so a second car at the same door (or a
     // neighbour's) sees it this same frame.
+    // "Room" allows for each car behind being able to slow down comfortably:
+    // a car length and gap, plus reaction distance and braking distance at
+    // its speed, from where this car joins.
     if (piece.kind === 'drive' && i === 1 && car.pieces[1] && car.s === 0) {
       const first = car.pieces[1];
-      if (!laneRoom(lanes, first.key, first.start, car, 40)) cap(0, 'pulling out');
+      const pos = first.start - car.cum[1]; // where it counts on the lane once moving
+      const list = lanes.get(first.key) || [];
+      const clear = list.every(e => e.car === car ||
+        e.pos >= first.start + CAR_LEN + MIN_GAP ||                       // well ahead
+        e.pos <= pos - (CAR_LEN + MIN_GAP + e.car.v * HEADWAY + e.car.v * e.car.v / (2 * DECEL_COMFORT)));
+      if (!clear) cap(0, 'pulling out');
       else {
-        if (!lanes.has(first.key)) lanes.set(first.key, []);
-        const list = lanes.get(first.key), pos = first.start - car.cum[1];
+        if (!lanes.has(first.key)) lanes.set(first.key, list);
         list.splice(list.filter(e => e.pos < pos).length, 0, { car, pos });
       }
     }
