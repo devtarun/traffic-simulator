@@ -204,12 +204,7 @@ function panKeys(dt) {
   if (pointerScreen) pointer = target(screenToWorld(pointerScreen)).p;
 }
 
-const playBtn = document.getElementById('play');
-function setPaused(p) {
-  paused = p;
-  playBtn.textContent = paused ? 'Play' : 'Pause';
-}
-playBtn.onclick = () => setPaused(!paused);
+function setPaused(p) { paused = p; }
 
 // Settings menu under the gear (top right): Snap, Save and Reset. The
 // simulation pauses while it's open and resumes on close if it was running.
