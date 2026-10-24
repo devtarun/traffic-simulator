@@ -39,14 +39,26 @@
   let pointer = null;    // current pointer position, or null when outside
   let snap = true;       // new roads snap to horizontal/vertical when close to it
   const SNAP_ANGLE = 10; // degrees either side of horizontal/vertical that snap
+  const view = { x: 0, y: 0, scale: 1 }; // screen = world × scale + (x, y), in CSS px
+  const MIN_ZOOM = 0.1, MAX_ZOOM = 10;
+  const DRAG = 4;        // pointer must move this many px before a press pans
+  let drag = null;       // in-progress press: start position, view then, moved yet
 
-  function pos(e) {
+  // Pointer position in CSS px relative to the canvas
+  function screenPos(e) {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  // Pointer position in world coordinates, which points are stored in
+  function pos(e) {
+    const s = screenPos(e);
+    return { x: (s.x - view.x) / view.scale, y: (s.y - view.y) / view.scale };
+  }
+
+  // HIT is in screen px, so snapping feels the same at any zoom
   function hitTest(p) {
-    let best = null, bestDist = HIT;
+    let best = null, bestDist = HIT / view.scale;
     points.forEach((q, i) => {
       const d = Math.hypot(q.x - p.x, q.y - p.y);
       if (d <= bestDist) { best = i; bestDist = d; }
@@ -197,8 +209,12 @@
   }
 
   function render() {
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    ctx.clearRect(0, 0, w, h);
+    // Clear and composite in device pixels; draw everything else in world coordinates
+    const dpr = window.devicePixelRatio || 1;
+    const toWorld = c => c.setTransform(dpr * view.scale, 0, 0, dpr * view.scale, dpr * view.x, dpr * view.y);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    toWorld(ctx);
     ctx.fillStyle = '#d9d4cc';
     ctx.strokeStyle = '#9a9286';
     ctx.lineWidth = 1;
@@ -210,15 +226,20 @@
     });
     roads(ctx, lines.map(([a, b]) => [points[a], points[b]]));
     if (last !== null && pointer) {
-      lctx.clearRect(0, 0, w, h);
+      lctx.setTransform(1, 0, 0, 1, 0, 0);
+      lctx.clearRect(0, 0, layer.width, layer.height);
+      toWorld(lctx);
       roads(lctx, [[points[last], pointer]]);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 0.5;
-      ctx.drawImage(layer, 0, 0, w, h);
+      ctx.drawImage(layer, 0, 0);
       ctx.globalAlpha = 1;
+      toWorld(ctx);
     }
+    // Points stay the same size on screen at any zoom
     ctx.fillStyle = '#000';
     points.forEach(p => {
-      ctx.beginPath(); ctx.arc(p.x, p.y, RADIUS, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, RADIUS / view.scale, 0, Math.PI * 2); ctx.fill();
     });
   }
 
@@ -228,10 +249,8 @@
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvas.clientWidth * dpr;
     canvas.height = canvas.clientHeight * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layer.width = canvas.width;
     layer.height = canvas.height;
-    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     render();
   }
   window.addEventListener('resize', resize);
@@ -243,6 +262,7 @@
       points.push(...s.points);
       lines.push(...s.lines);
       last = s.last;
+      if (s.view) Object.assign(view, s.view); // older saves have no view
     } catch (err) {
       console.warn('Could not load saved canvas', err);
     }
@@ -299,7 +319,31 @@
       render();
       return;
     }
-    if (e.button !== 0) return;
+    // Left or middle press: a drag pans the view; a left click adds a point on release
+    if (e.button !== 0 && e.button !== 1) return;
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    drag = { button: e.button, start: screenPos(e), view: { ...view }, moved: false };
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (drag) {
+      const s = screenPos(e);
+      const dx = s.x - drag.start.x, dy = s.y - drag.start.y;
+      if (!drag.moved && Math.hypot(dx, dy) > DRAG) {
+        drag.moved = true;
+        canvas.style.cursor = 'grabbing';
+      }
+      if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
+    }
+    pointer = target(pos(e)).p;
+    render();
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const click = drag.button === 0 && !drag.moved;
+    drag = null;
+    canvas.style.cursor = '';
+    if (!click) return;
     let { p, i } = target(pos(e));
     if (i === null) { points.push(p); i = points.length - 1; }
     connect(last, i);
@@ -307,10 +351,20 @@
     pointer = points[i];
     render();
   });
-  canvas.addEventListener('pointermove', e => {
+  canvas.addEventListener('pointercancel', () => { drag = null; canvas.style.cursor = ''; });
+
+  // Wheel zooms around the pointer: the world point under it stays put
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const s = screenPos(e);
+    const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1); // lines → px
+    const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.scale * Math.exp(-delta * 0.0015)));
+    view.x = s.x - (s.x - view.x) * scale / view.scale;
+    view.y = s.y - (s.y - view.y) * scale / view.scale;
+    view.scale = scale;
     pointer = target(pos(e)).p;
     render();
-  });
+  }, { passive: false });
   canvas.addEventListener('pointerleave', () => { pointer = null; render(); });
 
   const snapBtn = document.getElementById('snap');
@@ -327,7 +381,7 @@
   const saveBtn = document.getElementById('save');
   saveBtn.onclick = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, lines, last }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, lines, last, view }));
       saveBtn.textContent = 'Saved';
     } catch (err) {
       console.warn('Could not save canvas', err);
