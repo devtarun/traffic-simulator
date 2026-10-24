@@ -11,6 +11,14 @@
   <div class="controls">
     <button id="speed" title="Normal speed (click for 2×)" aria-label="Simulation speed: normal">❯</button>
     <button id="settings" title="Settings" aria-label="Settings" aria-expanded="false">⚙</button>
+    <div class="modes" aria-label="Canvas controls">
+      <button id="mode-road" class="mode-button active" aria-pressed="true" title="Build roads"><span class="mode-icon">🛣️</span>Road</button>
+      <button id="mode-traffic" class="mode-button" aria-pressed="false" title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes"><span class="mode-icon">🚦</span>Traffic</button>
+      <span class="traffic-adjust">
+        <button id="traffic-more" title="More traffic (+10%)" aria-label="Increase traffic by 10%"><span aria-hidden="true">+</span></button>
+        <button id="traffic-less" title="Less traffic (−10%)" aria-label="Decrease traffic by 10%"><span aria-hidden="true">−</span></button>
+      </span>
+    </div>
   </div>
   <div id="settings-menu" class="settings" hidden>
     <div class="settings-stack" role="dialog" aria-label="Settings">
@@ -19,14 +27,6 @@
       <button id="reset">Reset</button>
       <button id="resume">Resume</button>
     </div>
-  </div>
-  <div class="modes">
-    <button id="mode-road" class="active" title="Build roads">🛣️ Road</button>
-    <button id="mode-traffic" title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes">🚦 Traffic</button>
-    <span class="traffic-adjust">
-      <button id="traffic-more" title="More traffic (+10%)" aria-label="Increase traffic by 10%">+</button>
-      <button id="traffic-less" title="Less traffic (−10%)" aria-label="Decrease traffic by 10%">−</button>
-    </span>
   </div>
   <div id="toasts"></div>
   <div id="panel" class="panel" hidden>

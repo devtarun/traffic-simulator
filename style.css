@@ -1,6 +1,6 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #a9cf8f; /* matches GRASS in terrain.js */ }
 canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.controls { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; }
+.controls { position: fixed; top: 8px; right: 12px; display: flex; align-items: center; gap: 4px; }
 .controls button {
   font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
   padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;
@@ -54,20 +54,39 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
 /* Road / Traffic mode buttons, bottom centre */
 .modes {
-  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 4px; padding: 4px;
-  background: rgba(255, 255, 255, 0.92); border: 1px solid #ccc; border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  display: flex; align-items: center; gap: 3px;
 }
 .modes button {
-  font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif;
-  padding: 8px 16px; border: 0; border-radius: 7px; background: none; color: #444; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 48px; padding: 0 19px;
+  font: 650 15px system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #17231a; background: transparent;
+  border: 0; border-radius: 0; box-shadow: none;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95), 0 2px 4px rgba(15, 30, 18, 0.75);
+  cursor: pointer; transition: transform 140ms ease, color 140ms ease, text-shadow 140ms ease;
 }
-.modes button:hover { background: #eee; }
-.modes button.active { background: #2f6fde; color: #fff; }
+.modes button:hover { transform: translateY(-2px); color: #075bbd; background: transparent; }
+.modes button:active { transform: translateY(1px) scale(0.98); background: transparent; }
+.modes button:focus-visible { outline: 0; text-shadow: 0 0 2px #fff, 0 0 8px #fff, 0 2px 4px rgba(15, 30, 18, 0.9); }
+.modes .mode-button.active {
+  color: #fff; background: transparent; border: 0; box-shadow: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 5px rgba(0, 0, 0, 0.75), 0 0 8px rgba(255, 255, 255, 0.85);
+}
+.mode-icon { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65)); }
 /* Traffic + (top) and − (bottom), stacked to the height of the mode buttons */
-.traffic-adjust { display: flex; flex-direction: column; gap: 1px; justify-content: center; padding-left: 4px; margin-left: 2px; border-left: 1px solid #ddd; }
-.modes .traffic-adjust button { padding: 1px 9px; font-size: 14px; line-height: 15px; border-radius: 5px; }
+.traffic-adjust { display: flex; gap: 7px; }
+.modes .traffic-adjust button { width: 44px; min-height: 44px; padding: 0; border-radius: 14px; }
+.traffic-adjust span { font-size: 22px; font-weight: 500; line-height: 1; }
+@media (max-width: 430px) {
+  .controls { top: 5px; right: 4px; gap: 0; }
+  .controls #speed { min-width: 42px; padding-right: 3px; font-size: 19px; }
+  .controls #settings { padding: 6px 4px; font-size: 26px; }
+  .modes { gap: 0; }
+  .modes .mode-button { min-height: 44px; padding: 0 5px; gap: 4px; font-size: 12px; }
+  .modes .mode-icon { font-size: 15px; }
+  .modes .traffic-adjust { gap: 0; }
+  .modes .traffic-adjust button { width: 32px; min-height: 40px; }
+}
 
 /* Gridlock toasts, stacked at the bottom right */
 #toasts {

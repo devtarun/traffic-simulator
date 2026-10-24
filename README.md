@@ -8,17 +8,13 @@ Open `index.html` in a modern browser. No build step or package installation is 
 
 ## Controls
 
-### Road mode
+### Road and Traffic toggles
 
-- **Left-click** to place a point and connect it to the previous point. Click near an existing point to connect to it.
+- **Road on** (default): left-click to place a point and connect it to the previous point. Click near an existing point to connect to it. Turn Road off to stop building; you can still click cars and buildings to inspect their routes.
+- **Traffic on**: click a junction to place or remove its traffic light. This toggle works independently of Road. With Traffic off, junction clicks follow the Road toggle behavior.
 - **Drag** with the left or middle mouse button to pan. Use the **mouse wheel** to zoom around the pointer.
 - **W/A/S/D** pans the view. Angle snapping is on by default.
-- **Right-click** on empty space to end the current road chain and choose a 2-lane or 4-lane road for new roads. Right-click a point to remove it and its connected roads.
-
-### Traffic mode
-
-- Select **Traffic** to stop building roads and interact with the simulation.
-- Click a **junction** to toggle its traffic light and inspect it; click a **road** to inspect traffic flow; click a **car** or **building** to show its route.
+- With Road on, **right-click** empty space to end the current road chain and choose a 2-lane or 4-lane road. Right-click a point to remove it and its connected roads.
 - Use the **+ / −** controls to adjust traffic and the speed control to cycle simulation speed.
 
 ### Settings

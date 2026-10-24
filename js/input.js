@@ -81,8 +81,8 @@ canvas.addEventListener('pointerdown', e => {
     closeMenu();
     if (e.button !== 2) return;
   }
-  // In Traffic mode, right click just clears the selection
-  if (e.button === 2 && mode === 'traffic') { clearSelection(); return; }
+  // With road building disabled, right-click never edits the road network.
+  if (e.button === 2 && !roadEnabled) { clearSelection(); return; }
   // Right click on a point removes it; elsewhere it ends the current chain
   // and opens the road type menu. Either way, points left with no roads go too.
   if (e.button === 2) {
@@ -113,9 +113,11 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   } else {
-    // In Traffic mode, a hand cursor over a car, junction, road or box shows it can be clicked
+    // Show an interactive cursor over objects available in the current toggles.
     const w = pos(e), k = hitTest(w);
-    canvas.style.cursor = mode === 'traffic' && (carAt(w) || (k !== null && traffic.junctions.has(k)) || roadUnder(w) !== null || boxAt(w)) ? 'pointer' : '';
+    const canSelect = !roadEnabled && (carAt(w) || boxAt(w));
+    const canSignal = trafficEnabled && k !== null && traffic.junctions.has(k);
+    canvas.style.cursor = canSelect || canSignal ? 'pointer' : '';
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
@@ -126,25 +128,19 @@ canvas.addEventListener('pointerup', e => {
   drag = null;
   canvas.style.cursor = '';
   if (!click) return;
-  // Traffic mode: clicks select and manage, and never build. In priority
-  // order: a car (its route), a junction (cycle its signal, show its panel),
-  // a road (its flow), a box (every car driving to it); anywhere else
-  // deselects.
-  if (mode === 'traffic') {
-    const w = pos(e);
+  const w = pos(e), junction = hitTest(w);
+  // Traffic and Road are independent toggles. Signal placement takes priority
+  // on junctions while Traffic is on; otherwise Road controls construction.
+  if (trafficEnabled && junction !== null && traffic.junctions.has(junction)) {
+    clearSelection();
+    toggleLight(junction);
+    selectedJunction = junction;
+    return;
+  }
+  // With Road off, allow inspection of cars and buildings without editing.
+  if (!roadEnabled) {
     clearSelection();
     selectedCar = carAt(w);
-    // A junction (3+ roads): cycle its signal (none <-> timed) and select it
-    // to show its panel
-    const k = selectedCar ? null : hitTest(w);
-    if (k !== null && traffic.junctions.has(k)) {
-      toggleLight(k);
-      selectedJunction = k;
-      return;
-    }
-    // A road: select it to show its traffic flow
-    const road = selectedCar ? null : roadUnder(w);
-    if (road !== null) { selectedRoad = road; return; }
     selectedBox = selectedCar ? null : boxAt(w);
     return;
   }
@@ -241,14 +237,14 @@ settingsMenu.addEventListener('click', e => { if (e.target === settingsMenu) clo
 // Mode buttons at the bottom: Road builds roads, Traffic manages and
 // inspects traffic. Switching ends any road being drawn and clears selections.
 function clearSelection() { selectedCar = selectedBox = selectedJunction = selectedRoad = null; }
-function setMode(m) {
-  mode = m;
-  document.getElementById('mode-road').classList.toggle('active', m === 'road');
-  document.getElementById('mode-traffic').classList.toggle('active', m === 'traffic');
+function updateToolToggles() {
+  const roadButton = document.getElementById('mode-road');
+  const trafficButton = document.getElementById('mode-traffic');
+  roadButton.classList.toggle('active', roadEnabled);
+  trafficButton.classList.toggle('active', trafficEnabled);
+  roadButton.setAttribute('aria-pressed', String(roadEnabled));
+  trafficButton.setAttribute('aria-pressed', String(trafficEnabled));
   closeMenu();
-  clearSelection();
-  last = null;
-  prune();
   canvas.style.cursor = '';
 }
 // Traffic − / +: change the number of cars by 10% of normal, with a toast
@@ -264,8 +260,15 @@ function adjustTraffic(delta) {
 document.getElementById('traffic-less').onclick = () => adjustTraffic(-TRAFFIC_STEP);
 document.getElementById('traffic-more').onclick = () => adjustTraffic(TRAFFIC_STEP);
 
-document.getElementById('mode-road').onclick = () => setMode('road');
-document.getElementById('mode-traffic').onclick = () => setMode('traffic');
+document.getElementById('mode-road').onclick = () => {
+  roadEnabled = !roadEnabled;
+  if (!roadEnabled) last = null;
+  updateToolToggles();
+};
+document.getElementById('mode-traffic').onclick = () => {
+  trafficEnabled = !trafficEnabled;
+  updateToolToggles();
+};
 
 const snapBtn = document.getElementById('snap');
 snapBtn.onclick = () => {

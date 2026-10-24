@@ -3,28 +3,22 @@
 
 const CAR_LEN = 8, CAR_WID = 4.5; // world px
 
-// Car's heading in radians, from the direction of the path piece it's on.
-// Zero-length pieces keep the previous heading.
+// Use the path tangent around the blended position instead of easing toward
+// each segment's heading. Sampling across nearby segments smooths short
+// junction connectors without angle wraparound or accumulated rotation.
 function carHeading(car) {
-  if (car.heading === undefined) {
-    const i = pieceAt(car), a = car.path[i - 1], b = car.path[i];
-    if (Math.hypot(b.x - a.x, b.y - a.y) > 1e-6) car.heading = Math.atan2(b.y - a.y, b.x - a.x);
-  }
-  return car.heading || 0;
-}
-
-function renderHeading(car) {
-  const target = carHeading(car);
-  const from = car.prevHeading ?? target;
-  let delta = ((target - from + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-  return from + delta * renderAlpha;
+  const s = car.prevS === undefined ? car.s : car.prevS + (car.s - car.prevS) * renderAlpha;
+  const before = pathPosAt(car, Math.max(0, s - CAR_LEN / 2));
+  const after = pathPosAt(car, Math.min(car.len, s + CAR_LEN / 2));
+  if (Math.hypot(after.x - before.x, after.y - before.y) < 1e-6) return 0;
+  return Math.atan2(after.y - before.y, after.x - before.x);
 }
 
 // Draws every driving car on c (in world coordinates): all headlight beams
 // first, so a beam never covers the car ahead, then the bodies. Cars parked
 // inside a building aren't drawn.
 function drawCars(c) {
-  const driving = traffic.cars.filter(car => car.path).map(car => ({ car, p: renderCarPos(car), h: renderHeading(car) }));
+  const driving = traffic.cars.filter(car => car.path).map(car => ({ car, p: renderCarPos(car), h: carHeading(car) }));
   const half = CAR_LEN / 2;
   driving.forEach(({ p, h }) => {
     c.save();

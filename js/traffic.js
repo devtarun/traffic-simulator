@@ -161,6 +161,7 @@ function depart(t, car) {
   }
   car.len = car.cum[car.cum.length - 1];
   car.s = 0;
+  car.prevS = 0;
 }
 
 // Where box b's driveway meets the road's center line
@@ -274,10 +275,15 @@ function pieceAt(car) {
 }
 
 function carPos(car) {
-  const i = pieceAt(car);
+  return pathPosAt(car, car.s);
+}
+
+function pathPosAt(car, s) {
+  s = Math.max(0, Math.min(car.len, s));
+  const i = pieceAt({ ...car, s });
   const a = car.path[i - 1], b = car.path[i];
   const seg = car.cum[i] - car.cum[i - 1];
-  const f = seg ? (car.s - car.cum[i - 1]) / seg : 0;
+  const f = seg ? (s - car.cum[i - 1]) / seg : 0;
   return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
 

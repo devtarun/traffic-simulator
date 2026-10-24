@@ -26,7 +26,8 @@ let pointer = null;    // current pointer position, or null when outside
 let snap = true;       // new roads snap to horizontal/vertical when close to it
 let paused = false;    // traffic simulation paused; drawing and the view still work
 let simSpeed = 1;      // simulation steps per frame: 1, 2 or 3 (the speed button)
-let mode = 'road';     // 'road': clicks build roads; 'traffic': clicks manage and inspect traffic
+let roadEnabled = true;    // Road toggle: allow point and road creation
+let trafficEnabled = false; // Traffic toggle: allow signal placement at junctions
 const SNAP_ANGLE = 10; // degrees either side of horizontal/vertical that snap
 const view = { x: 0, y: 0, scale: 1 }; // screen = world × scale + (x, y), in CSS px
 const MIN_ZOOM = 0.1, MAX_ZOOM = 10;
