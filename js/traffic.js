@@ -12,10 +12,25 @@ const CAR_COLORS = ['#e63946', '#f1faee', '#ffb703', '#219ebc', '#8ecae6', '#fb8
 // 2-lane. Driveways and turns at junctions go at the 2-lane speed.
 const ROAD_SPEED = { 1: 1, 2: 1.5 };
 let traffic = { adj: [], comp: [], cars: [] };
-// Car whose route is shown, picked by clicking it while paused; cleared on
-// play and whenever traffic is rebuilt
+// What a click while paused selected: a car (its route is shown) or a box
+// (the routes of every car driving to it are shown). At most one is set;
+// both are cleared on play and whenever traffic is rebuilt.
 let selectedCar = null;
+let selectedBox = null;
 const CAR_PICK = 8;    // a click within this many screen px of a car selects it
+
+// The box (house or office) containing world point p, or null
+function boxAt(p) {
+  return getScene().boxes.find(b => segBoxDist(b, p, p) === 0) || null;
+}
+
+// Cars whose routes are shown: the selected car, or every car driving to the
+// selected box
+function shownCars() {
+  if (selectedCar) return selectedCar.path ? [selectedCar] : [];
+  if (selectedBox) return traffic.cars.filter(car => car.path && car.to === selectedBox);
+  return [];
+}
 
 // The driving car nearest world point p within CAR_PICK screen px, or null.
 // Cars parked inside a building can't be picked.

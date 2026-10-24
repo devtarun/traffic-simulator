@@ -101,8 +101,8 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   } else {
-    // While paused, a hand cursor over a car shows it can be clicked
-    canvas.style.cursor = paused && carAt(pos(e)) ? 'pointer' : '';
+    // While paused, a hand cursor over a car or box shows it can be clicked
+    canvas.style.cursor = paused && (carAt(pos(e)) || boxAt(pos(e))) ? 'pointer' : '';
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
@@ -114,11 +114,14 @@ canvas.addEventListener('pointerup', e => {
   drag = null;
   canvas.style.cursor = '';
   if (!click) return;
-  // While paused, clicking a car selects it to show its route, instead of
-  // adding a point. Clicking anywhere else deselects and carries on as usual.
+  // While paused, clicking a car selects it to show its route, and clicking a
+  // box selects it to show every car driving to it, instead of adding a
+  // point; a car wins over the box under it. Clicking anywhere else
+  // deselects and carries on as usual.
   if (paused) {
     selectedCar = carAt(pos(e));
-    if (selectedCar) { render(); return; }
+    selectedBox = selectedCar ? null : boxAt(pos(e));
+    if (selectedCar || selectedBox) { render(); return; }
   }
   let { p, i } = target(pos(e));
   if (i === null) { points.push(p); i = points.length - 1; }
@@ -173,7 +176,7 @@ const playBtn = document.getElementById('play');
 playBtn.onclick = () => {
   paused = !paused;
   playBtn.textContent = paused ? 'Play' : 'Pause';
-  if (!paused) selectedCar = null; // routes are only shown while paused
+  if (!paused) selectedCar = selectedBox = null; // routes are only shown while paused
 };
 
 const snapBtn = document.getElementById('snap');

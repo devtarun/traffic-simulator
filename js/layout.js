@@ -70,6 +70,6 @@ function layout() {
 let sceneKey = '', scene = { boxes: [], trees: [] };
 function getScene() {
   const key = JSON.stringify([points, lines]);
-  if (key !== sceneKey) { sceneKey = key; scene = layout(); traffic = makeTraffic(scene); selectedCar = null; }
+  if (key !== sceneKey) { sceneKey = key; scene = layout(); traffic = makeTraffic(scene); selectedCar = selectedBox = null; }
   return scene;
 }
