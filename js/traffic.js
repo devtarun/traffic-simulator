@@ -12,6 +12,23 @@ const CAR_COLORS = ['#e63946', '#f1faee', '#ffb703', '#219ebc', '#8ecae6', '#fb8
 // 2-lane. Driveways and turns at junctions go at the 2-lane speed.
 const ROAD_SPEED = { 1: 1, 2: 1.5 };
 let traffic = { adj: [], comp: [], cars: [] };
+// Car whose route is shown, picked by clicking it while paused; cleared on
+// play and whenever traffic is rebuilt
+let selectedCar = null;
+const CAR_PICK = 8;    // a click within this many screen px of a car selects it
+
+// The driving car nearest world point p within CAR_PICK screen px, or null.
+// Cars parked inside a building can't be picked.
+function carAt(p) {
+  let best = null, bestDist = CAR_PICK / view.scale;
+  traffic.cars.forEach(car => {
+    if (!car.path) return;
+    const q = carPos(car);
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    if (d <= bestDist) { best = car; bestDist = d; }
+  });
+  return best;
+}
 
 function makeTraffic({ boxes }) {
   // adj[i]: [neighbour, length, lanes each way] for each road at point i
