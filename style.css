@@ -11,6 +11,57 @@ canvas {
     height: 100%;
     touch-action: none;
 }
+.start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(20, 30, 20, 0.25);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.start-screen[hidden] {
+    display: none;
+}
+.start-card {
+    color: #fff;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    text-align: center;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
+}
+.start-card h1 {
+    margin: 0 0 8px;
+    font-size: 34px;
+    letter-spacing: -0.04em;
+}
+.start-card > p {
+    margin: 0 0 24px;
+}
+.start-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+.backup-actions {
+    display: contents;
+}
+.start-actions button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.start-card .start-message {
+    min-height: 1.4em;
+    margin: 14px 0 0;
+    color: #fff;
+    font-size: 13px;
+}
 .controls {
     position: fixed;
     top: 8px;
@@ -84,7 +135,8 @@ canvas {
     flex-direction: column;
     gap: 16px;
 }
-.settings button {
+.settings button,
+.start-actions button {
     position: relative;
     width: 240px;
     padding: 13px 0 12px;
@@ -107,32 +159,51 @@ canvas {
         /* lower shade */ 0 4px 0 #3b6a0b,
         /* raised edge */ 0 9px 16px rgba(0, 0, 0, 0.35); /* drop shadow */
 }
+.start-actions button {
+    width: 300px;
+    font-size: 18px;
+}
+@media (max-width: 420px) {
+    .start-card h1 {
+        font-size: 28px;
+    }
+    .start-actions button {
+        width: 260px;
+        font-size: 16px;
+    }
+}
 /* Glossy highlights: a white streak at the top left, a dot at the bottom right */
 .settings button::before,
-.settings button::after {
+.settings button::after,
+.start-actions button::before,
+.start-actions button::after {
     content: "";
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.9);
 }
-.settings button::before {
+.settings button::before,
+.start-actions button::before {
     left: 18px;
     top: 6px;
     width: 24px;
     height: 9px;
     transform: rotate(-18deg);
 }
-.settings button::after {
+.settings button::after,
+.start-actions button::after {
     right: 20px;
     bottom: 8px;
     width: 7px;
     height: 7px;
     background: rgba(255, 255, 255, 0.75);
 }
-.settings button:hover {
+.settings button:hover,
+.start-actions button:hover:not(:disabled) {
     filter: brightness(1.06);
 }
-.settings button:active {
+.settings button:active,
+.start-actions button:active:not(:disabled) {
     transform: translateY(3px);
     box-shadow:
         inset 0 3px 0 rgba(255, 255, 255, 0.45),
@@ -140,7 +211,8 @@ canvas {
         0 1px 0 #3b6a0b,
         0 4px 8px rgba(0, 0, 0, 0.3);
 }
-.settings button:focus-visible {
+.settings button:focus-visible,
+.start-actions button:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 3px;
 }

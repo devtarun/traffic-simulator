@@ -199,6 +199,24 @@ canvas.addEventListener("pointerup", (e) => {
     junctionize(); // the new road may cross others
     last = i;
     pointer = points[i];
+    if (autoSaveOnFirstRoad && lines.length) {
+        try {
+            storeSave();
+            autoSaveOnFirstRoad = false;
+            showToast(
+                "New game saved",
+                "Your first road is saved in this browser",
+            );
+        } catch (err) {
+            console.warn("Could not auto-save the new game", err);
+            showToast(
+                "Could not save game",
+                "Use Save in Settings to retry",
+                "alert",
+            );
+            autoSaveOnFirstRoad = false;
+        }
+    }
 });
 canvas.addEventListener("pointercancel", () => {
     drag = null;

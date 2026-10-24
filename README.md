@@ -13,11 +13,15 @@ npm run dev
 
 Then open `http://127.0.0.1:8080`. The app has no build step; the local server is only for development.
 
+## Start screen and backups
+
+On load, choose **Resume Last Game** to use the map saved in this browser or **Start Fresh Game** to clear it and begin with an empty map. Starting fresh asks before deleting an existing save; the new game is auto-saved when its first road is placed. **Backup Current Game** downloads the current map, view, and traffic signals as JSON. **Restore Backup** imports a JSON backup and replaces the browser's saved game.
+
 ## Controls
 
 ### Road and Traffic toggles
 
-- **Road on** (default): left-click to place a point and connect it to the previous point. Click near an existing point to connect to it. Turn Road off to stop building; you can still click cars and buildings to inspect their routes.
+- **Road on**: left-click to place a point and connect it to the previous point. Click near an existing point to connect to it. Turn Road off to stop building; you can still click cars and buildings to inspect their routes. Road starts off.
 - **Traffic on**: click a junction to place or remove its traffic light. This toggle works independently of Road. With Traffic off, junction clicks follow the Road toggle behavior.
 - **Drag** with the left or middle mouse button to pan. Use the **mouse wheel** to zoom around the pointer.
 - **W/A/S/D** pans the view. Angle snapping is on by default.

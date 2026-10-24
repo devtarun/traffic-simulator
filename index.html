@@ -9,6 +9,37 @@
     <body>
         <!-- state.js, input.js, and render.js use this canvas as the main view. -->
         <canvas id="c"></canvas>
+        <!-- main.js keeps the simulation paused here until a start action is chosen. -->
+        <div id="start-screen" class="start-screen">
+            <section
+                class="start-card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="start-title"
+            >
+                <h1 id="start-title">Traffic Simulator</h1>
+                <p>Build a better way.</p>
+                <div class="start-actions">
+                    <button id="resume-game" class="primary">
+                        Resume Last Game
+                    </button>
+                    <button id="fresh-game">Start Fresh Game</button>
+                    <button id="backup-game">Backup Current Game</button>
+                    <button id="restore-game">Restore Backup</button>
+                    <input
+                        id="restore-file"
+                        type="file"
+                        accept="application/json,.json"
+                        hidden
+                    />
+                </div>
+                <p
+                    id="start-message"
+                    class="start-message"
+                    aria-live="polite"
+                ></p>
+            </section>
+        </div>
         <!-- input.js wires the speed, settings, Road/Traffic, and traffic-count controls. -->
         <div class="controls">
             <button
@@ -47,8 +78,8 @@
                 title="Less traffic (−10%)"
                 aria-label="Decrease traffic by 10%"
             >
-                &minus;</button
-            >
+                &minus;
+            </button>
             <button
                 id="settings"
                 title="Settings"
