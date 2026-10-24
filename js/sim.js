@@ -349,17 +349,11 @@ function drawJunctionAlerts(c, t) {
   });
 }
 
-// The banner at the top: how many junctions are gridlocked or blocked
-let bannerText = '';
-function updateBanner(t) {
-  let grid = 0, blocked = 0;
-  t.junctions.forEach(j => { if (j.gridlock) grid++; else if (j.blocked) blocked++; });
-  const text = grid ? `Gridlock at ${grid} intersection${grid > 1 ? 's' : ''}`
-    : blocked ? `${blocked} blocked intersection${blocked > 1 ? 's' : ''}` : '';
-  if (text === bannerText) return;
-  bannerText = text;
-  const el = document.getElementById('banner');
-  el.textContent = text;
-  el.hidden = !text;
-  el.classList.toggle('gridlock', grid > 0);
+// Shows a gridlock toast (bottom right) each time a junction becomes
+// gridlocked; `notified` stops repeats until that gridlock clears
+function updateAlerts(t) {
+  t.junctions.forEach(j => {
+    if (j.gridlock && !j.notified) showGridlockToast(points[j.node]);
+    j.notified = j.gridlock;
+  });
 }

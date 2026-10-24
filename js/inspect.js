@@ -53,6 +53,33 @@ function buildRoadPanel(k) {
     </div>`;
 }
 
+// Gridlock toasts, stacked at the bottom right, newest at the bottom. Each
+// fades out after TOAST_TIME unless clicked; clicking one removes it and
+// centres the view on its junction (keeping the zoom).
+const TOAST_TIME = 3000; // ms
+const toasts = document.getElementById('toasts');
+
+function centerOn(p) {
+  view.x = canvas.clientWidth / 2 - p.x * view.scale;
+  view.y = canvas.clientHeight / 2 - p.y * view.scale;
+  render();
+}
+
+function showGridlockToast(p) {
+  const at = { x: p.x, y: p.y }; // a copy, as points can change before it's clicked
+  const el = document.createElement('button');
+  el.className = 'toast';
+  el.innerHTML = '<b>⚠ Gridlock</b><span>Click to view the intersection</span>';
+  const dismiss = () => {
+    if (el.classList.contains('gone')) return;
+    el.classList.add('gone');
+    setTimeout(() => el.remove(), 300); // after the fade-out
+  };
+  el.onclick = () => { centerOn(at); dismiss(); };
+  toasts.appendChild(el);
+  setTimeout(dismiss, TOAST_TIME);
+}
+
 // Shows, hides, rebuilds or refreshes the panel to match the selection
 function updatePanel(t) {
   const j = selectedJunction !== null ? t.junctions.get(selectedJunction) : null;

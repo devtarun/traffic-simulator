@@ -13,7 +13,7 @@ function frame(now) {
   getScene(); // rebuilds traffic if the roads changed
   if (!paused) stepSim(traffic, dt);
   render();
-  updateBanner(traffic);
+  updateAlerts(traffic);
   updatePanel(traffic);
   requestAnimationFrame(frame);
 }
