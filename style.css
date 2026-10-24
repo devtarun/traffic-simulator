@@ -40,8 +40,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 }
 .modes button:hover { background: #eee; }
 .modes button.active { background: #2f6fde; color: #fff; }
-.traffic-adjust { display: flex; gap: 2px; align-items: center; padding-left: 4px; margin-left: 2px; border-left: 1px solid #ddd; }
-.modes .traffic-adjust button { padding: 6px 10px; font-size: 16px; line-height: 1; }
+/* Traffic + (top) and − (bottom), stacked to the height of the mode buttons */
+.traffic-adjust { display: flex; flex-direction: column; gap: 1px; justify-content: center; padding-left: 4px; margin-left: 2px; border-left: 1px solid #ddd; }
+.modes .traffic-adjust button { padding: 1px 9px; font-size: 14px; line-height: 15px; border-radius: 5px; }
 
 /* Gridlock toasts, stacked at the bottom right */
 #toasts {
