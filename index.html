@@ -1,63 +1,102 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Canvas</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <canvas id="c"></canvas>
-  <div class="controls">
-    <button id="speed" title="Normal speed (click for 2×)" aria-label="Simulation speed: normal">❯</button>
-    <button id="settings" title="Settings" aria-label="Settings" aria-expanded="false">⚙</button>
-    <div class="modes" aria-label="Canvas controls">
-      <button id="mode-road" class="mode-button active" aria-pressed="true" title="Build roads"><span class="mode-icon">🛣️</span>Road</button>
-      <button id="mode-traffic" class="mode-button" aria-pressed="false" title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes"><span class="mode-icon">🚦</span>Traffic</button>
-      <span class="traffic-adjust">
-        <button id="traffic-more" title="More traffic (+10%)" aria-label="Increase traffic by 10%"><span aria-hidden="true">+</span></button>
-        <button id="traffic-less" title="Less traffic (−10%)" aria-label="Decrease traffic by 10%"><span aria-hidden="true">−</span></button>
-      </span>
-    </div>
-  </div>
-  <div id="settings-menu" class="settings" hidden>
-    <div class="settings-stack" role="dialog" aria-label="Settings">
-      <button id="snap">Snap: on</button>
-      <button id="save">Save</button>
-      <button id="reset">Reset</button>
-      <button id="resume">Resume</button>
-    </div>
-  </div>
-  <div id="toasts"></div>
-  <div id="panel" class="panel" hidden>
-    <button class="panel-close" aria-label="Close">×</button>
-    <div class="panel-title"></div>
-    <div class="panel-body"></div>
-  </div>
-  <div id="road-menu" class="menu" hidden>
-    <div class="menu-title">New roads</div>
-    <button data-lanes="1">2-lane road</button>
-    <button data-lanes="2">4-lane road</button>
-  </div>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Canvas</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <canvas id="c"></canvas>
+        <div class="controls">
+            <button
+                id="speed"
+                title="Normal speed (click for 2×)"
+                aria-label="Simulation speed: normal"
+            >
+                ❯
+            </button>
+            <button
+                id="settings"
+                title="Settings"
+                aria-label="Settings"
+                aria-expanded="false"
+            >
+                ⚙
+            </button>
+            <div class="modes" aria-label="Canvas controls">
+                <button
+                    id="mode-road"
+                    class="mode-button active"
+                    aria-pressed="true"
+                    title="Build roads"
+                >
+                    <span class="mode-icon">🛣️</span>Road
+                </button>
+                <button
+                    id="mode-traffic"
+                    class="mode-button"
+                    aria-pressed="false"
+                    title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes"
+                >
+                    <span class="mode-icon">🚦</span>Traffic
+                </button>
+                <span class="traffic-adjust">
+                    <button
+                        id="traffic-more"
+                        title="More traffic (+10%)"
+                        aria-label="Increase traffic by 10%"
+                    >
+                        <span aria-hidden="true">+</span>
+                    </button>
+                    <button
+                        id="traffic-less"
+                        title="Less traffic (−10%)"
+                        aria-label="Decrease traffic by 10%"
+                    >
+                        <span aria-hidden="true">−</span>
+                    </button>
+                </span>
+            </div>
+        </div>
+        <div id="settings-menu" class="settings" hidden>
+            <div class="settings-stack" role="dialog" aria-label="Settings">
+                <button id="snap">Snap: on</button>
+                <button id="save">Save</button>
+                <button id="reset">Reset</button>
+                <button id="resume">Resume</button>
+            </div>
+        </div>
+        <div id="toasts"></div>
+        <div id="panel" class="panel" hidden>
+            <button class="panel-close" aria-label="Close">×</button>
+            <div class="panel-title"></div>
+            <div class="panel-body"></div>
+        </div>
+        <div id="road-menu" class="menu" hidden>
+            <div class="menu-title">New roads</div>
+            <button data-lanes="1">2-lane road</button>
+            <button data-lanes="2">4-lane road</button>
+        </div>
 
-<!-- Plain scripts sharing one global scope, not modules, so the page still
+        <!-- Plain scripts sharing one global scope, not modules, so the page still
      works opened straight from disk (file://). Order matters: main.js runs
      the startup code and must come last. -->
-<script src="js/state.js"></script>
-<script src="js/geometry.js"></script>
-<script src="js/terrain.js"></script>
-<script src="js/roads.js"></script>
-<script src="js/layout.js"></script>
-<script src="js/scenery.js"></script>
-<script src="js/traffic.js"></script>
-<script src="js/lights.js"></script>
-<script src="js/sim.js"></script>
-<script src="js/junctions.js"></script>
-<script src="js/vehicles.js"></script>
-<script src="js/render.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/inspect.js"></script>
-<script src="js/input.js"></script>
-<script src="js/main.js"></script>
-</body>
+        <script src="js/state.js"></script>
+        <script src="js/geometry.js"></script>
+        <script src="js/terrain.js"></script>
+        <script src="js/roads.js"></script>
+        <script src="js/layout.js"></script>
+        <script src="js/scenery.js"></script>
+        <script src="js/traffic.js"></script>
+        <script src="js/lights.js"></script>
+        <script src="js/sim.js"></script>
+        <script src="js/junctions.js"></script>
+        <script src="js/vehicles.js"></script>
+        <script src="js/render.js"></script>
+        <script src="js/storage.js"></script>
+        <script src="js/inspect.js"></script>
+        <script src="js/input.js"></script>
+        <script src="js/main.js"></script>
+    </body>
 </html>

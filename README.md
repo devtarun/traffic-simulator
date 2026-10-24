@@ -4,7 +4,14 @@ A small, dependency-free road building and traffic simulation game that runs in 
 
 ## Run
 
-Open `index.html` in a modern browser. No build step or package installation is required. Alternatively, serve this folder with any static file server and open its local address.
+Open `index.html` in a modern browser, or use the included dev server:
+
+```sh
+npm install
+npm run dev
+```
+
+Then open `http://127.0.0.1:8080`. The app has no build step; the local server is only for development.
 
 ## Controls
 

@@ -1,155 +1,478 @@
-html, body { margin: 0; height: 100%; overflow: hidden; background: #a9cf8f; /* matches GRASS in terrain.js */ }
-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.controls { position: fixed; top: 8px; right: 12px; display: flex; align-items: center; gap: 4px; }
-.controls button {
-  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
-  padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;
-  background: #fafafa; cursor: pointer;
+html,
+body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #a9cf8f; /* matches GRASS in terrain.js */
 }
-.controls button:hover { background: #eee; }
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+.controls {
+    position: fixed;
+    top: 8px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.controls button {
+    font:
+        13px system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fafafa;
+    cursor: pointer;
+}
+.controls button:hover {
+    background: #eee;
+}
 
 /* Speed and gear: bare icons, no background or border; a dark drop shadow
    and a thin light edge keep them readable on the grass */
-.controls #speed, .controls #settings {
-  background: none; border: 0; padding: 6px 8px; color: #23302a;
-  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.8);
+.controls #speed,
+.controls #settings {
+    background: none;
+    border: 0;
+    padding: 6px 8px;
+    color: #23302a;
+    text-shadow:
+        0 2px 3px rgba(0, 0, 0, 0.45),
+        0 0 1px rgba(255, 255, 255, 0.8);
 }
-.controls #speed:hover, .controls #settings:hover { background: none; color: #000; }
-#settings { font-size: 30px; line-height: 30px; }
-#speed { font-size: 22px; font-weight: 700; letter-spacing: -4px; line-height: 30px; min-width: 56px; text-align: right; }
-#speed.fast { color: #2f6fde; }
+.controls #speed:hover,
+.controls #settings:hover {
+    background: none;
+    color: #000;
+}
+#settings {
+    font-size: 30px;
+    line-height: 30px;
+}
+#speed {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -4px;
+    line-height: 30px;
+    min-width: 56px;
+    text-align: right;
+}
+#speed.fast {
+    color: #2f6fde;
+}
 
 /* Settings popup: a blurred backdrop over everything, with glossy green
    game-style buttons stacked in the middle */
 .settings {
-  position: fixed; inset: 0; z-index: 10;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(20, 30, 20, 0.25);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 30, 20, 0.25);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
-.settings[hidden] { display: none; }
-.settings-stack { display: flex; flex-direction: column; gap: 16px; }
+.settings[hidden] {
+    display: none;
+}
+.settings-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
 .settings button {
-  position: relative; width: 240px; padding: 13px 0 12px;
-  font: 900 22px/1 "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
-  letter-spacing: 1px; text-transform: uppercase;
-  color: #3e6a0b; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-  background: linear-gradient(#d2f25a 0%, #a7dd2c 45%, #86c51b 100%);
-  border: 3px solid #4c8410; border-radius: 999px; cursor: pointer;
-  box-shadow:
-    inset 0 3px 0 rgba(255, 255, 255, 0.45),  /* top shine */
-    inset 0 -4px 0 rgba(40, 80, 0, 0.18),     /* lower shade */
-    0 4px 0 #3b6a0b,                          /* raised edge */
-    0 9px 16px rgba(0, 0, 0, 0.35);           /* drop shadow */
+    position: relative;
+    width: 240px;
+    padding: 13px 0 12px;
+    font:
+        900 22px/1 "Arial Rounded MT Bold",
+        "Trebuchet MS",
+        system-ui,
+        sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #3e6a0b;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+    background: linear-gradient(#d2f25a 0%, #a7dd2c 45%, #86c51b 100%);
+    border: 3px solid #4c8410;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow:
+        inset 0 3px 0 rgba(255, 255, 255, 0.45),
+        /* top shine */ inset 0 -4px 0 rgba(40, 80, 0, 0.18),
+        /* lower shade */ 0 4px 0 #3b6a0b,
+        /* raised edge */ 0 9px 16px rgba(0, 0, 0, 0.35); /* drop shadow */
 }
 /* Glossy highlights: a white streak at the top left, a dot at the bottom right */
-.settings button::before, .settings button::after {
-  content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.9);
+.settings button::before,
+.settings button::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
 }
-.settings button::before { left: 18px; top: 6px; width: 24px; height: 9px; transform: rotate(-18deg); }
-.settings button::after { right: 20px; bottom: 8px; width: 7px; height: 7px; background: rgba(255, 255, 255, 0.75); }
-.settings button:hover { filter: brightness(1.06); }
-.settings button:active { transform: translateY(3px); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 0 rgba(40, 80, 0, 0.18), 0 1px 0 #3b6a0b, 0 4px 8px rgba(0, 0, 0, 0.3); }
-.settings button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.settings button::before {
+    left: 18px;
+    top: 6px;
+    width: 24px;
+    height: 9px;
+    transform: rotate(-18deg);
+}
+.settings button::after {
+    right: 20px;
+    bottom: 8px;
+    width: 7px;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.75);
+}
+.settings button:hover {
+    filter: brightness(1.06);
+}
+.settings button:active {
+    transform: translateY(3px);
+    box-shadow:
+        inset 0 3px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -4px 0 rgba(40, 80, 0, 0.18),
+        0 1px 0 #3b6a0b,
+        0 4px 8px rgba(0, 0, 0, 0.3);
+}
+.settings button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+}
 
 /* Road / Traffic mode buttons, bottom centre */
 .modes {
-  display: flex; align-items: center; gap: 3px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
 }
 .modes button {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-  min-height: 48px; padding: 0 19px;
-  font: 650 15px system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #17231a; background: transparent;
-  border: 0; border-radius: 0; box-shadow: none;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95), 0 2px 4px rgba(15, 30, 18, 0.75);
-  cursor: pointer; transition: transform 140ms ease, color 140ms ease, text-shadow 140ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 0 19px;
+    font:
+        650 15px system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    color: #17231a;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    text-shadow:
+        0 1px 2px rgba(255, 255, 255, 0.95),
+        0 2px 4px rgba(15, 30, 18, 0.75);
+    cursor: pointer;
+    transition:
+        transform 140ms ease,
+        color 140ms ease,
+        text-shadow 140ms ease;
 }
-.modes button:hover { transform: translateY(-2px); color: #075bbd; background: transparent; }
-.modes button:active { transform: translateY(1px) scale(0.98); background: transparent; }
-.modes button:focus-visible { outline: 0; text-shadow: 0 0 2px #fff, 0 0 8px #fff, 0 2px 4px rgba(15, 30, 18, 0.9); }
+.modes button:hover {
+    transform: translateY(-2px);
+    color: #075bbd;
+    background: transparent;
+}
+.modes button:active {
+    transform: translateY(1px) scale(0.98);
+    background: transparent;
+}
+.modes button:focus-visible {
+    outline: 0;
+    text-shadow:
+        0 0 2px #fff,
+        0 0 8px #fff,
+        0 2px 4px rgba(15, 30, 18, 0.9);
+}
 .modes .mode-button.active {
-  color: #fff; background: transparent; border: 0; box-shadow: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 5px rgba(0, 0, 0, 0.75), 0 0 8px rgba(255, 255, 255, 0.85);
+    color: #fff;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.95),
+        0 0 5px rgba(0, 0, 0, 0.75),
+        0 0 8px rgba(255, 255, 255, 0.85);
 }
-.mode-icon { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65)); }
+.mode-icon {
+    font-size: 18px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
 /* Traffic + (top) and − (bottom), stacked to the height of the mode buttons */
-.traffic-adjust { display: flex; gap: 7px; }
-.modes .traffic-adjust button { width: 44px; min-height: 44px; padding: 0; border-radius: 14px; }
-.traffic-adjust span { font-size: 22px; font-weight: 500; line-height: 1; }
+.traffic-adjust {
+    display: flex;
+    gap: 7px;
+}
+.modes .traffic-adjust button {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 14px;
+}
+.traffic-adjust span {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+}
 @media (max-width: 430px) {
-  .controls { top: 5px; right: 4px; gap: 0; }
-  .controls #speed { min-width: 42px; padding-right: 3px; font-size: 19px; }
-  .controls #settings { padding: 6px 4px; font-size: 26px; }
-  .modes { gap: 0; }
-  .modes .mode-button { min-height: 44px; padding: 0 5px; gap: 4px; font-size: 12px; }
-  .modes .mode-icon { font-size: 15px; }
-  .modes .traffic-adjust { gap: 0; }
-  .modes .traffic-adjust button { width: 32px; min-height: 40px; }
+    .controls {
+        top: 5px;
+        right: 4px;
+        gap: 0;
+    }
+    .controls #speed {
+        min-width: 42px;
+        padding-right: 3px;
+        font-size: 19px;
+    }
+    .controls #settings {
+        padding: 6px 4px;
+        font-size: 26px;
+    }
+    .modes {
+        gap: 0;
+    }
+    .modes .mode-button {
+        min-height: 44px;
+        padding: 0 5px;
+        gap: 4px;
+        font-size: 12px;
+    }
+    .modes .mode-icon {
+        font-size: 15px;
+    }
+    .modes .traffic-adjust {
+        gap: 0;
+    }
+    .modes .traffic-adjust button {
+        width: 32px;
+        min-height: 40px;
+    }
 }
 
 /* Gridlock toasts, stacked at the bottom right */
 #toasts {
-  position: fixed; right: 12px; bottom: 12px;
-  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
 }
 .toast {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  padding: 8px 14px; border: 0; border-radius: 8px; cursor: pointer; text-align: left;
-  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; color: #fff;
-  background: #2b2f36; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  animation: toast-in 0.2s ease-out;
-  transition: opacity 0.3s, transform 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    font:
+        13px system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    color: #fff;
+    background: #2b2f36;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    animation: toast-in 0.2s ease-out;
+    transition:
+        opacity 0.3s,
+        transform 0.3s;
 }
-.toast:hover { background: #1c1f24; }
-.toast.alert { background: #d6281e; }
-.toast.alert:hover { background: #b81f16; }
-.toast span { font-size: 11px; opacity: 0.85; }
-.toast.gone { opacity: 0; transform: translateX(20px); pointer-events: none; }
-@keyframes toast-in { from { opacity: 0; transform: translateX(20px); } }
+.toast:hover {
+    background: #1c1f24;
+}
+.toast.alert {
+    background: #d6281e;
+}
+.toast.alert:hover {
+    background: #b81f16;
+}
+.toast span {
+    font-size: 11px;
+    opacity: 0.85;
+}
+.toast.gone {
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+}
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+}
 
 /* Inspection panel (bottom left) for a selected intersection or road */
 .panel {
-  position: fixed; left: 12px; bottom: 12px; width: 240px; padding: 10px 12px 12px;
-  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; color: #222;
-  background: rgba(255, 255, 255, 0.96); border: 1px solid #ccc; border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    width: 240px;
+    padding: 10px 12px 12px;
+    font:
+        13px system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    color: #222;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
-.panel[hidden] { display: none; }
-.panel-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.panel[hidden] {
+    display: none;
+}
+.panel-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
 .panel-close {
-  position: absolute; top: 6px; right: 8px; border: 0; background: none;
-  font-size: 18px; line-height: 1; color: #777; cursor: pointer;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: 0;
+    background: none;
+    font-size: 18px;
+    line-height: 1;
+    color: #777;
+    cursor: pointer;
 }
-.panel .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; }
-.panel .row > span { color: #666; }
-.panel .slider input { flex: 1; min-width: 0; }
+.panel .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+}
+.panel .row > span {
+    color: #666;
+}
+.panel .slider input {
+    flex: 1;
+    min-width: 0;
+}
 .panel button[data-a] {
-  margin-top: 8px; width: 100%; padding: 6px; font: inherit; cursor: pointer;
-  border: 1px solid #ccc; border-radius: 6px; background: #fafafa;
+    margin-top: 8px;
+    width: 100%;
+    padding: 6px;
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fafafa;
 }
-.panel button[data-a]:hover { background: #eee; }
-.panel.wide { width: 300px; }
-.panel .grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px; align-items: baseline; }
-.panel .grid > span { color: #666; }
-.panel .grid > b { text-align: right; font-weight: 600; }
-.panel .ok { color: #1f8a3a; } .panel .warn { color: #c77b00; } .panel .bad { color: #d6281e; }
-.lamp { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #999; vertical-align: -1px; }
-.lamp.green { background: #2fbf4f; } .lamp.amber { background: #ffb020; } .lamp.red { background: #ff3b30; }
+.panel button[data-a]:hover {
+    background: #eee;
+}
+.panel.wide {
+    width: 300px;
+}
+.panel .grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 4px 10px;
+    align-items: baseline;
+}
+.panel .grid > span {
+    color: #666;
+}
+.panel .grid > b {
+    text-align: right;
+    font-weight: 600;
+}
+.panel .ok {
+    color: #1f8a3a;
+}
+.panel .warn {
+    color: #c77b00;
+}
+.panel .bad {
+    color: #d6281e;
+}
+.lamp {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: #999;
+    vertical-align: -1px;
+}
+.lamp.green {
+    background: #2fbf4f;
+}
+.lamp.amber {
+    background: #ffb020;
+}
+.lamp.red {
+    background: #ff3b30;
+}
 
 /* Right-click road type menu */
 .menu {
-  position: fixed; min-width: 140px; padding: 4px;
-  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #fff; border: 1px solid #ccc; border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: fixed;
+    min-width: 140px;
+    padding: 4px;
+    font:
+        13px system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.menu[hidden] { display: none; }
-.menu-title { padding: 4px 8px; color: #777; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.menu[hidden] {
+    display: none;
+}
+.menu-title {
+    padding: 4px 8px;
+    color: #777;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
 .menu button {
-  display: block; width: 100%; padding: 6px 8px 6px 24px; text-align: left;
-  font: inherit; border: 0; border-radius: 4px; background: none; cursor: pointer;
-  position: relative;
+    display: block;
+    width: 100%;
+    padding: 6px 8px 6px 24px;
+    text-align: left;
+    font: inherit;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    position: relative;
 }
-.menu button:hover { background: #eee; }
-.menu button.current::before { content: "✓"; position: absolute; left: 8px; }
+.menu button:hover {
+    background: #eee;
+}
+.menu button.current::before {
+    content: "✓";
+    position: absolute;
+    left: 8px;
+}

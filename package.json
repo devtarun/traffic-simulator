@@ -1,0 +1,13 @@
+{
+    "name": "canvas-road-builder",
+    "private": true,
+    "scripts": {
+        "dev": "http-server . -a 127.0.0.1 -p 8080 -c-1",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "http-server": "14.1.1",
+        "prettier": "3.9.10"
+    }
+}
