@@ -148,7 +148,8 @@ function bendTangent(lanes, theta, len0, len1) {
 // thick stroke along it has rounded inner as well as outer edges. Ends of an
 // open path stay put.
 function filletPath(pts, lanes, closed) {
-    const n = pts.length, out = [];
+    const n = pts.length,
+        out = [];
     pts.forEach((p, i) => {
         const prev = i > 0 ? pts[i - 1] : closed ? pts[n - 1] : null;
         const next = i < n - 1 ? pts[i + 1] : closed ? pts[0] : null;
@@ -158,14 +159,17 @@ function filletPath(pts, lanes, closed) {
         if (l0 < 1e-6 || l1 < 1e-6) return out.push(p);
         const u0 = { x: (p.x - prev.x) / l0, y: (p.y - prev.y) / l0 },
             u1 = { x: (next.x - p.x) / l1, y: (next.y - p.y) / l1 };
-        const theta = Math.acos(Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)));
+        const theta = Math.acos(
+            Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)),
+        );
         if (theta < 0.05) return out.push(p);
         const d = bendTangent(lanes, theta, l0, l1);
         const A = { x: p.x - u0.x * d, y: p.y - u0.y * d },
             B = { x: p.x + u1.x * d, y: p.y + u1.y * d };
         const steps = Math.max(4, Math.ceil(theta / (Math.PI / 24)));
         for (let q = 0; q <= steps; q++) {
-            const f = q / steps, g = 1 - f;
+            const f = q / steps,
+                g = 1 - f;
             out.push({
                 x: g * g * A.x + 2 * g * f * p.x + f * f * B.x,
                 y: g * g * A.y + 2 * g * f * p.y + f * f * B.y,

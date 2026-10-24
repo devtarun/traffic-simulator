@@ -398,10 +398,18 @@ function curveTurns(t, path, speed, pieces) {
         const before = pieces[k - 1],
             turn = pieces[k],
             after = pieces[k + 1];
-        if (turn.kind !== "turn" || before.kind !== "road" || after.kind !== "road")
+        if (
+            turn.kind !== "turn" ||
+            before.kind !== "road" ||
+            after.kind !== "road"
+        )
             continue;
-        const s0 = path[k - 1], e0 = path[k], s1 = path[k + 1], e1 = path[k + 2];
-        const u0 = unit(s0, e0), u1 = unit(s1, e1);
+        const s0 = path[k - 1],
+            e0 = path[k],
+            s1 = path[k + 1],
+            e1 = path[k + 2];
+        const u0 = unit(s0, e0),
+            u1 = unit(s1, e1);
         const cross = u0.x * u1.y - u0.y * u1.x;
         if (Math.abs(cross) < 0.05) continue; // straight on
         // Where the lane lines meet: e0 + u0·a = s1 + u1·b
@@ -419,7 +427,9 @@ function curveTurns(t, path, speed, pieces) {
         // parallel to the road's center line
         if (!j && lanesIn === lanesOut) {
             const P = points[turn.node];
-            const theta = Math.acos(Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)));
+            const theta = Math.acos(
+                Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)),
+            );
             const dc = bendTangent(lanesIn, theta, u0.L, u1.L);
             const off = KEEP * (laneIn + 0.5) * LANE_W;
             const A = { x: P.x - u0.x * dc, y: P.y - u0.y * dc },
@@ -427,7 +437,8 @@ function curveTurns(t, path, speed, pieces) {
             const steps = Math.max(4, Math.ceil(theta / (Math.PI / 24)));
             const lanePts = [];
             for (let q = 0; q <= steps; q++) {
-                const f = q / steps, g = 1 - f;
+                const f = q / steps,
+                    g = 1 - f;
                 const x = g * g * A.x + 2 * g * f * P.x + f * f * B.x,
                     y = g * g * A.y + 2 * g * f * P.y + f * f * B.y;
                 // Tangent of the curve, and the lane's sideways shift from it
@@ -437,7 +448,14 @@ function curveTurns(t, path, speed, pieces) {
                 lanePts.push({ x: x - (dy / L) * off, y: y + (dx / L) * off });
             }
             path.splice(k, 2, ...lanePts);
-            pieces.splice(k, 1, ...Array.from({ length: steps }, () => ({ kind: "turn", node: turn.node })));
+            pieces.splice(
+                k,
+                1,
+                ...Array.from({ length: steps }, () => ({
+                    kind: "turn",
+                    node: turn.node,
+                })),
+            );
             speed.splice(k, 1, ...Array(steps).fill(ROAD_SPEED[1]));
             before.tail = (before.tail || 0) + dc;
             after.start += dc;
@@ -452,14 +470,22 @@ function curveTurns(t, path, speed, pieces) {
         const B = { x: C.x + u1.x * radius, y: C.y + u1.y * radius };
         const curve = [];
         for (let q = 1; q < CURVE_STEPS; q++) {
-            const f = q / CURVE_STEPS, g = 1 - f;
+            const f = q / CURVE_STEPS,
+                g = 1 - f;
             curve.push({
                 x: g * g * A.x + 2 * g * f * C.x + f * f * B.x,
                 y: g * g * A.y + 2 * g * f * C.y + f * f * B.y,
             });
         }
         path.splice(k, 2, A, ...curve, B);
-        pieces.splice(k, 1, ...Array.from({ length: CURVE_STEPS }, () => ({ kind: "turn", node: turn.node })));
+        pieces.splice(
+            k,
+            1,
+            ...Array.from({ length: CURVE_STEPS }, () => ({
+                kind: "turn",
+                node: turn.node,
+            })),
+        );
         speed.splice(k, 1, ...Array(CURVE_STEPS).fill(ROAD_SPEED[1]));
         before.tail = (before.tail || 0) + radius - a; // e0 - A = u0·(radius - a)
         after.start += b + radius; // B - s1 = u1·(b + radius)
