@@ -28,6 +28,7 @@ import { lights, toggleLight } from "./lights.js";
 import { addLine, junctionize, roadAt, splitLine } from "./junctions.js";
 import { storeSave } from "./storage.js";
 import { showToast } from "./inspect.js";
+import { setGameplay } from "./platform.js";
 
 export function connect(a, b) {
     if (a !== null) addLine(a, b, game.roadLanes);
@@ -313,6 +314,7 @@ export function panKeys(dt) {
 
 export function setPaused(p) {
     game.paused = p;
+    setGameplay(!p);
 }
 
 // Speed button (top right, left of the gear): cycles normal → 2× → 3×

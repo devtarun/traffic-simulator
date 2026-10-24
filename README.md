@@ -13,6 +13,10 @@ npm run dev
 
 Then open `http://127.0.0.1:8080`. The app is plain ES modules served straight from the source; browsers won't load modules from `file://`, so it needs a server rather than opening `index.html` from disk.
 
+## CrazyGames
+
+The page loads the [CrazyGames HTML5 SDK](https://docs.crazygames.com/sdk/intro/) (`js/platform.js`). On CrazyGames, saves go to the SDK's data module, so they follow the player's account, and the SDK hears about loading and gameplay. Elsewhere the game works without it and saves in `localStorage`. When submitting, enable **Progress Save** so the data module is on.
+
 ## Build
 
 ```sh

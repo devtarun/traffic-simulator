@@ -7,9 +7,12 @@ const { test, expect } = require("@playwright/test");
 
 // Fail any test whose page throws
 let errors;
-test.beforeEach(({ page }) => {
+test.beforeEach(async ({ page }) => {
     errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    // No CrazyGames SDK (e2e/platform.spec.js covers it): saves go to
+    // localStorage, and the tests don't depend on the network
+    await page.route("https://sdk.crazygames.com/**", (route) => route.abort());
 });
 test.afterEach(() => expect(errors).toEqual([]));
 

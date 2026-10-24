@@ -3,8 +3,10 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Canvas</title>
+        <title>Traffic-Sim</title>
         <link rel="stylesheet" href="style.css" />
+        <!-- CrazyGames SDK (js/platform.js); the game works without it too. -->
+        <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
     </head>
     <body>
         <!-- state.js, input.js, and render.js use this canvas as the main view. -->
@@ -17,8 +19,8 @@
                 aria-modal="true"
                 aria-labelledby="start-title"
             >
-                <h1 id="start-title">Traffic Simulator</h1>
-                <p>Build a better way.</p>
+                <h1 id="start-title">Traffic Sim</h1>
+                <p>Build a better way</p>
                 <div class="start-actions">
                     <button id="resume-game" class="primary">
                         Resume Last Game

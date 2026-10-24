@@ -30,6 +30,8 @@ test("the built page starts a game, builds roads and opens the settings", async 
 }) => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    // without the CrazyGames SDK, so the save lands in localStorage
+    await page.route("https://sdk.crazygames.com/**", (route) => route.abort());
     await page.goto(`http://127.0.0.1:${PREVIEW_PORT}/`);
 
     await expect(page.locator("#start-screen")).toBeVisible();

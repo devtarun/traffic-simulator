@@ -51,7 +51,10 @@ function modulePaths(root) {
             visit(path.resolve(path.dirname(file), m[1]));
         order.push(file);
     };
-    for (const m of html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g))
+    // only the page's own module scripts, not ones from other sites (the SDK)
+    for (const m of html.matchAll(
+        /<script\b[^>]*\btype="module"[^>]*\bsrc="([^"]+)"/g,
+    ))
         visit(path.join(root, m[1]));
     return order;
 }
@@ -150,7 +153,8 @@ function fakeElement(id) {
 // quiet: silence console.warn, for tests that trigger an expected warning
 // root: the folder whose index.html to load (the source by default; a build
 // output folder to test the built page)
-function loadApp({ storage = {}, quiet = false, root = ROOT } = {}) {
+// sdk: a stand-in for the CrazyGames SDK, put at window.CrazyGames.SDK
+function loadApp({ storage = {}, quiet = false, root = ROOT, sdk } = {}) {
     const elements = {};
     const startHidden = hiddenIds(root);
     const document = {
@@ -193,6 +197,7 @@ function loadApp({ storage = {}, quiet = false, root = ROOT } = {}) {
             (this.windowListeners[type] ||= []).push(f);
         },
         Blob: class {},
+        CrazyGames: sdk ? { SDK: sdk } : undefined,
         URL: { createObjectURL: () => "", revokeObjectURL() {} },
     };
     sandbox.window = sandbox;

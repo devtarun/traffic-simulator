@@ -9,6 +9,7 @@ import {
     roadsChanged,
     view,
 } from "./state.js";
+import { saves, startPlatform } from "./platform.js";
 import "./geometry.js";
 import "./terrain.js";
 import "./roads.js";
@@ -22,13 +23,17 @@ import "./vehicles.js";
 import { render, resize } from "./render.js";
 import { load, restoreSave, saveData } from "./storage.js";
 import { updatePanel } from "./inspect.js";
-import { clearSelection, panKeys, updateToolToggles } from "./input.js";
+import {
+    clearSelection,
+    panKeys,
+    setPaused,
+    updateToolToggles,
+} from "./input.js";
 
 // Simulation timing is shared with render interpolation.
 const FIXED_DT = 1 / 120;
 let accumulator = 0;
 
-const hasLastGame = load();
 game.paused = true;
 resize();
 
@@ -36,13 +41,27 @@ const startScreen = document.getElementById("start-screen");
 const resumeGameButton = document.getElementById("resume-game");
 const restoreFileInput = document.getElementById("restore-file");
 const startMessage = document.getElementById("start-message");
-resumeGameButton.disabled = !hasLastGame;
+const startButtons = [
+    "fresh-game",
+    "resume-game",
+    "backup-game",
+    "restore-game",
+].map((id) => document.getElementById(id));
+
+// The start screen's buttons wait for the platform (the CrazyGames SDK
+// preloads the player's save in its init) and the saved game to load
+startButtons.forEach((b) => (b.disabled = true));
+startPlatform(() => {
+    const hasLastGame = load();
+    startButtons.forEach((b) => (b.disabled = false));
+    resumeGameButton.disabled = !hasLastGame;
+});
 
 function enterGame() {
     startMessage.textContent = "";
     startScreen.hidden = true;
     accumulator = 0;
-    game.paused = false;
+    setPaused(false);
     prevTime = null;
 }
 
@@ -51,13 +70,13 @@ resumeGameButton.onclick = enterGame;
 document.getElementById("fresh-game").onclick = () => {
     try {
         if (
-            localStorage.getItem(STORAGE_KEY) !== null &&
+            saves.getItem(STORAGE_KEY) !== null &&
             !confirm(
                 "Starting fresh will delete the saved game in this browser. Continue?",
             )
         )
             return;
-        localStorage.removeItem(STORAGE_KEY);
+        saves.removeItem(STORAGE_KEY);
         points.length = 0;
         lines.length = 0;
         roadsChanged();

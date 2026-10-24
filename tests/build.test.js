@@ -32,12 +32,12 @@ test("the build writes exactly index.html, app.css and app.js", () => {
     ]);
 });
 
-test("the HTML loads only the built CSS and JS, and is minified", () => {
+test("the HTML loads only the SDK and the built CSS and JS, and is minified", () => {
     const html = read("index.html");
     assert.match(html, /<link rel="stylesheet"[^>]*href="\.\/app\.css"/);
     assert.deepEqual(
         [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((m) => m[1]),
-        ["./app.js"],
+        ["https://sdk.crazygames.com/crazygames-sdk-v3.js", "./app.js"], // the SDK first, as in the source
     );
     assert.doesNotMatch(html, /js\/|style\.css/);
     assert.doesNotMatch(html, /<!--/); // comments stripped

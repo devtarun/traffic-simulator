@@ -12,6 +12,7 @@ import {
 import { line } from "./roads.js";
 import { GREEN_MAX, GREEN_MIN, lights } from "./lights.js";
 import { junctionize } from "./junctions.js";
+import { saves } from "./platform.js";
 
 export function saveData() {
     return {
@@ -103,7 +104,7 @@ export function applySave(data) {
 
 export function load() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = saves.getItem(STORAGE_KEY);
         if (!raw) return false;
         applySave(JSON.parse(raw));
         return true;
@@ -114,7 +115,7 @@ export function load() {
 }
 
 export function storeSave(data = saveData()) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeSave(data)));
+    saves.setItem(STORAGE_KEY, JSON.stringify(normalizeSave(data)));
 }
 
 export function restoreSave(data) {
