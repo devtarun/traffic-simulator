@@ -200,6 +200,58 @@
     return placed;
   }
 
+  const ROOFS = [[12, 55, 48], [210, 12, 45], [25, 35, 40], [0, 45, 40], [100, 18, 40]]; // HSL
+  const LIGHT = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }; // light from the top left
+
+  function poly(pts) {
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
+  }
+
+  // Draws box b as a house seen from above: a hip roof whose four faces are
+  // shaded by how much they face LIGHT, a drop shadow and maybe a chimney.
+  // Colour and chimney are seeded from the box's position, so they're stable.
+  function house(b) {
+    const rand = rng(hash(b.c.x * 10, b.c.y * 10));
+    const [h, s, l] = ROOFS[Math.floor(rand() * ROOFS.length)];
+    // Long axis a with half-length L, short axis m with half-length S
+    const [a, L, m, S] = b.hw >= b.hd ? [b.u, b.hw, b.n, b.hd] : [b.n, b.hd, b.u, b.hw];
+    const at = (i, j) => ({ x: b.c.x + a.x * i + m.x * j, y: b.c.y + a.y * i + m.y * j });
+    const r1 = at(-(L - S), 0), r2 = at(L - S, 0);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    poly(corners(b).map(p => ({ x: p.x + 3, y: p.y + 3 })));
+    ctx.fill();
+
+    ctx.strokeStyle = `hsl(${h}, ${s}%, ${l - 18}%)`;
+    ctx.lineWidth = 1;
+    ctx.lineJoin = 'round';
+    [
+      [[at(L, S), at(-L, S), r1, r2], m],
+      [[at(L, -S), at(-L, -S), r1, r2], { x: -m.x, y: -m.y }],
+      [[at(L, S), at(L, -S), r2], a],
+      [[at(-L, S), at(-L, -S), r1], { x: -a.x, y: -a.y }],
+    ].forEach(([pts, normal]) => {
+      const lit = normal.x * LIGHT.x + normal.y * LIGHT.y;
+      ctx.fillStyle = `hsl(${h}, ${s}%, ${l + lit * 12}%)`;
+      poly(pts); ctx.fill(); ctx.stroke();
+    });
+
+    if (rand() < 0.5) {
+      const k = Math.max(3, S * 0.35);
+      const p = at((rand() - 0.5) * (L - S), (rand() < 0.5 ? 1 : -1) * S * 0.45);
+      const box = { c: p, u: a, n: m, hw: k / 2, hd: k / 2 };
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      poly(corners(box).map(q => ({ x: q.x + 1.5, y: q.y + 1.5 })));
+      ctx.fill();
+      ctx.fillStyle = '#8a8580';
+      ctx.strokeStyle = '#4a4744';
+      poly(corners(box)); ctx.fill(); ctx.stroke();
+    }
+    ctx.lineJoin = 'miter';
+  }
+
   // Boxes only change when the roads do, so cache them between renders
   let boxKey = '', boxes = [];
   function getBoxes() {
@@ -215,15 +267,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     toWorld(ctx);
-    ctx.fillStyle = '#d9d4cc';
-    ctx.strokeStyle = '#9a9286';
-    ctx.lineWidth = 1;
-    getBoxes().forEach(b => {
-      const k = corners(b);
-      ctx.beginPath();
-      k.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    });
+    getBoxes().forEach(house);
     roads(ctx, lines.map(([a, b]) => [points[a], points[b]]));
     if (last !== null && pointer) {
       lctx.setTransform(1, 0, 0, 1, 0, 0);
