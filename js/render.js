@@ -15,7 +15,7 @@ function render() {
   const { boxes, trees } = getScene();
   boxes.forEach(b => (b.office ? office(b) : house(b)));
   trees.forEach(tree);
-  roads(ctx, lines.map(([a, b]) => [points[a], points[b]]));
+  roads(ctx, lines.map(([a, b, lanes]) => [points[a], points[b], lanes]));
   // Cars on the road; ones parked inside a building aren't drawn
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
@@ -29,7 +29,7 @@ function render() {
     lctx.setTransform(1, 0, 0, 1, 0, 0);
     lctx.clearRect(0, 0, layer.width, layer.height);
     toWorld(lctx);
-    roads(lctx, [[points[last], pointer]]);
+    roads(lctx, [[points[last], pointer, roadLanes]]);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 0.5;
     ctx.drawImage(layer, 0, 0);

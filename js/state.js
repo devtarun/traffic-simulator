@@ -4,13 +4,15 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const STORAGE_KEY = 'canvas-state';
 const points = [];
-const lines = [];      // pairs of indices into points
+const lines = [];      // [a, b, lanes]: indices into points, and lanes each way
 const RADIUS = 4;
-const ROAD_WIDTH = 48; // four lanes, two each way
-const LANES = 2;       // lanes in each direction
-// Lane width: the asphalt inside the white edge lines (ROAD_WIDTH - 7, see
-// roads()) split across both directions
-const LANE_W = (ROAD_WIDTH - 7) / (2 * LANES);
+const LANE_W = 10.25;  // width of one lane
+const MAX_LANES = 2;   // lanes each way on the widest road type (4-lane)
+let roadLanes = 2;     // lanes each way for new roads, chosen from the right-click menu
+// Full width of a road with `lanes` lanes each way: the lanes plus the white
+// edge lines and their dark borders (7px in all, see roads())
+function roadWidth(lanes) { return 2 * lanes * LANE_W + 7; }
+const ROAD_WIDTH = roadWidth(MAX_LANES); // widest road; for clearances not tied to one road
 const KEEP = 1;        // cars keep to the right (1) or the left (-1)
 const OFFICE_SHARE = 0.2; // share of boxes that are offices; the rest are houses
 const BOX_MIN = 40;    // boxes along roads are BOX_MIN to 2 × BOX_MIN wide

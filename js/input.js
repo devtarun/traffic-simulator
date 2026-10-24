@@ -3,14 +3,14 @@
 function connect(a, b) {
   if (a === null || a === b) return;
   const exists = lines.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
-  if (!exists) lines.push([a, b]);
+  if (!exists) lines.push([a, b, roadLanes]);
 }
 
 // Removes point i and its lines, shifting later indices down to match
 function remove(i) {
   points.splice(i, 1);
   const kept = lines.filter(([a, b]) => a !== i && b !== i)
-    .map(([a, b]) => [a > i ? a - 1 : a, b > i ? b - 1 : b]);
+    .map(([a, b, lanes]) => [a > i ? a - 1 : a, b > i ? b - 1 : b, lanes]);
   lines.length = 0;
   lines.push(...kept);
   if (last === i) last = null;
@@ -44,14 +44,34 @@ function target(p) {
   return j !== null ? { p: points[j], i: j } : { p: q, i: null };
 }
 
+// Road type menu, opened by right clicking empty canvas. The chosen type
+// (lanes each way) applies to roads drawn from then on.
+const menu = document.getElementById('road-menu');
+function openMenu(e) {
+  menu.querySelectorAll('button').forEach(b => b.classList.toggle('current', +b.dataset.lanes === roadLanes));
+  menu.hidden = false;
+  // Keep it on screen near the window edges
+  menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
+  menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
+}
+function closeMenu() { menu.hidden = true; }
+menu.querySelectorAll('button').forEach(b => {
+  b.onclick = () => { roadLanes = +b.dataset.lanes; closeMenu(); render(); };
+});
+menu.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('pointerdown', e => {
-  // Right click on a point removes it; elsewhere it ends the current chain.
-  // Either way, points left with no roads go too.
+  // Any press on the canvas closes the menu and then does its usual job, so
+  // ending a road and starting the next doesn't need an extra click
+  closeMenu();
+  // Right click on a point removes it; elsewhere it ends the current chain
+  // and opens the road type menu. Either way, points left with no roads go too.
   if (e.button === 2) {
     const i = hitTest(pos(e));
-    if (i === null) last = null;
+    if (i === null) { last = null; openMenu(e); }
     else {
       const n = lines.filter(([a, b]) => a === i || b === i).length;
       if (!confirm(`Remove this point${n ? ` and its ${n} road${n > 1 ? 's' : ''}` : ''}?`)) return;
@@ -100,6 +120,7 @@ canvas.addEventListener('pointercancel', () => { drag = null; canvas.style.curso
 // Wheel zooms around the pointer: the world point under it stays put
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
+  closeMenu();
   const s = screenPos(e);
   const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1); // lines → px
   const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.scale * Math.exp(-delta * 0.0015)));

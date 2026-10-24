@@ -5,7 +5,8 @@ function load() {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!s) return;
     points.push(...s.points);
-    lines.push(...s.lines);
+    // Older saves have no road type; they were drawn as 4-lane roads
+    lines.push(...s.lines.map(([a, b, lanes]) => [a, b, lanes ?? MAX_LANES]));
     last = s.last;
     if (s.view) Object.assign(view, s.view); // older saves have no view
   } catch (err) {

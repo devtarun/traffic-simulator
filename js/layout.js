@@ -5,11 +5,13 @@
 // Then puts a tree in the gap after each placed box where one fits. Trees
 // go in after all boxes, so they never change where boxes land.
 function layout() {
-  const segs = lines.map(([a, b]) => [points[a], points[b]]);
+  // [p, q, half the road's width]
+  const segs = lines.map(([a, b, lanes]) => [points[a], points[b], roadWidth(lanes) / 2]);
   const placed = [];
   const gaps = [];       // middle of the gap after each placed box, on the road edge
+  // CLEAR uses the widest road, since any type of road may join at the ends
   const CLEAR = ROAD_WIDTH, SETBACK = 4;
-  segs.forEach(([p, q], seg) => {
+  segs.forEach(([p, q, half], seg) => {
     const L = Math.hypot(q.x - p.x, q.y - p.y);
     const u = { x: (q.x - p.x) / L, y: (q.y - p.y) / L };
     [1, -1].forEach(side => {
@@ -20,21 +22,21 @@ function layout() {
       for (let t = CLEAR; ; ) {
         const w = BOX_MIN + rand() * BOX_MIN, d = 20 + rand() * 20;
         if (t + w > L - CLEAR) break;
-        const off = ROAD_WIDTH / 2 + SETBACK + d / 2;
+        const off = half + SETBACK + d / 2;
         const box = {
           c: { x: p.x + u.x * (t + w / 2) + n.x * off, y: p.y + u.y * (t + w / 2) + n.y * off },
           u, n, hw: w / 2, hd: d / 2,
           seg, along: t + w / 2, // which line it fronts, and how far along it from its first point
         };
-        // Its own road sits exactly at min, so allow for rounding
-        const min = ROAD_WIDTH / 2 + SETBACK - 0.5;
-        const clear = segs.every(([a, c]) => segBoxDist(box, a, c) >= min)
-          && points.every(pt => segBoxDist(box, pt, pt) >= min)
+        // Its own road sits exactly at the minimum, so allow for rounding.
+        // Points are junctions of unknown width, so allow for the widest road.
+        const clear = segs.every(([a, c, h]) => segBoxDist(box, a, c) >= h + SETBACK - 0.5)
+          && points.every(pt => segBoxDist(box, pt, pt) >= ROAD_WIDTH / 2 + SETBACK - 0.5)
           && placed.every(o => !boxesOverlap(box, o, SETBACK));
         if (clear) {
           placed.push(box);
           const g = t + w + BOX_GAP / 2;
-          if (g < L - CLEAR) gaps.push({ x: p.x + u.x * g, y: p.y + u.y * g, n });
+          if (g < L - CLEAR) gaps.push({ x: p.x + u.x * g, y: p.y + u.y * g, n, half });
         }
         t += w + BOX_GAP;
       }
@@ -52,11 +54,10 @@ function layout() {
   gaps.forEach(g => {
     const rand = rng(hash(g.x * 10, g.y * 10, g.n.x * 10, g.n.y * 10));
     const r = 5.5 + rand() * 2; // at most 15px across, to fit the 20px gap
-    const off = ROAD_WIDTH / 2 + SETBACK + r + rand() * 10;
+    const off = g.half + SETBACK + r + rand() * 10;
     const c = { x: g.x + g.n.x * off, y: g.y + g.n.y * off };
-    const min = ROAD_WIDTH / 2 + SETBACK + r - 0.5;
-    const clear = segs.every(([a, b]) => pointSegDist(c, a, b) >= min)
-      && points.every(pt => Math.hypot(pt.x - c.x, pt.y - c.y) >= min)
+    const clear = segs.every(([a, b, h]) => pointSegDist(c, a, b) >= h + SETBACK + r - 0.5)
+      && points.every(pt => Math.hypot(pt.x - c.x, pt.y - c.y) >= ROAD_WIDTH / 2 + SETBACK + r - 0.5)
       && placed.every(b => segBoxDist(b, c, c) >= r + 1)
       && trees.every(o => Math.hypot(o.c.x - c.x, o.c.y - c.y) >= o.r + r + 1);
     if (clear) trees.push({ c, r, shade: rand() });
