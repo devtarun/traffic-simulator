@@ -138,11 +138,33 @@
     if (!exists) lines.push([a, b]);
   }
 
+  // Removes point i and its lines, shifting later indices down to match
+  function remove(i) {
+    points.splice(i, 1);
+    const kept = lines.filter(([a, b]) => a !== i && b !== i)
+      .map(([a, b]) => [a > i ? a - 1 : a, b > i ? b - 1 : b]);
+    lines.length = 0;
+    lines.push(...kept);
+    if (last === i) last = null;
+    else if (last > i) last--;
+  }
+
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 
   canvas.addEventListener('pointerdown', e => {
-    // Right click ends the current chain, removing the dashed preview
-    if (e.button === 2) { last = null; render(); return; }
+    // Right click on a point removes it; elsewhere it ends the current chain
+    if (e.button === 2) {
+      const i = hitTest(pos(e));
+      if (i === null) last = null;
+      else {
+        const n = lines.filter(([a, b]) => a === i || b === i).length;
+        if (!confirm(`Remove this point${n ? ` and its ${n} road${n > 1 ? 's' : ''}` : ''}?`)) return;
+        remove(i);
+        pointer = pos(e);
+      }
+      render();
+      return;
+    }
     if (e.button !== 0) return;
     const p = pos(e);
     let i = hitTest(p);
