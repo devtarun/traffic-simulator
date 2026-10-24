@@ -12,6 +12,7 @@
 const MIN_GAP = 4;        // px between bumpers when stopped
 const HEADWAY = 0.6;      // s: a car's speed is at most its gap / HEADWAY
 const ACCEL = 45, DECEL = 180; // px/s²
+const DECEL_COMFORT = 90; // px/s²: how hard a car brakes for a junction it may not enter
 const LOOKAHEAD = 90;     // px: how far ahead into the next lane a car looks for traffic
 const BLOCK_TIME = 6;     // s of standstill at a junction before it counts as blocked
 const GRIDLOCK_TIME = 15; // s of standstill before it counts as gridlocked
@@ -25,7 +26,7 @@ function makeJunctions(adj) {
   adj.forEach((roads, node) => {
     if (roads.length < 3) return;
     const clear = Math.max(...roads.map(([, , lanes]) => roadWidth(lanes))) / 2 + 2;
-    out.set(node, { node, clear, lastMove: simTime, blocked: false, gridlock: false });
+    out.set(node, { node, clear, lastMove: simTime, blocked: false, gridlock: false, phases: junctionPhases(adj, node) });
   });
   return out;
 }
@@ -70,8 +71,8 @@ function laneRoom(lanes, key, pos, self, behind = CAR_LEN + MIN_GAP) {
 }
 
 // Whether car may enter junction j now. `approach` is its lane into the box,
-// exit = { key, start } its lane out.
-function canEnter(car, j, approach, exit, lanes, cars) {
+// exit = { key, start } its lane out; stopDist is how far it is from the stop line.
+function canEnter(car, j, approach, exit, lanes, cars, stopDist) {
   // Don't block the box: the exit needs room for this car past the box, and
   // no other car already in the box may be heading for the same exit. Like
   // real drivers, though, a car goes if the car in the way is still moving,
@@ -83,7 +84,7 @@ function canEnter(car, j, approach, exit, lanes, cars) {
     || cars.some(o => o !== car && o.box === j.node && o.boxExit === exit.key);
   if (car.exitBlocked) return false;
   const light = lightAt(j.node);
-  if (light) return lightGreen(light, j, approach);
+  if (light) return lightGreen(light, j, approach, stopDist, car.v);
   // No light: give way to cars from crossing approaches already in the box,
   // or waiting at their stop line since before this car arrived (unless that
   // car can't go anyway because its own exit is full)
@@ -137,13 +138,15 @@ function stepSim(t, dt) {
     // Lowers the limit, noting why (and which car is in the way, if one is)
     const cap = (s, why, other = null) => { if (s < limit) { limit = s; car.limitBy = why; car.leader = other; } };
     const spot = car.lane;
+    let laneAhead = null; // the next car in this lane, if any
 
     // The car ahead in this lane, or else the first car within LOOKAHEAD on
     // the next lane after the coming turn
     if (spot) {
       const list = lanes.get(spot.key);
       const k = list.findIndex(c => c.car === car);
-      if (k < list.length - 1) cap(car.s + list[k + 1].pos - spot.pos - CAR_LEN - MIN_GAP, 'car ahead', list[k + 1].car);
+      if (k < list.length - 1) laneAhead = list[k + 1].car;
+      if (laneAhead) cap(car.s + list[k + 1].pos - spot.pos - CAR_LEN - MIN_GAP, 'car ahead', laneAhead);
       else if (piece.kind === 'road' && car.pieces[i] && car.pieces[i].kind === 'turn' && car.pieces[i + 1]) {
         const toEnd = car.cum[i] - car.s;
         if (toEnd < LOOKAHEAD) {
@@ -177,9 +180,14 @@ function stepSim(t, dt) {
       const stopS = car.cum[i] - j.clear - CAR_LEN / 2;
       if (car.s > stopS + 0.5) car.permit = j.node; // already past it (e.g. placed there at start)
       else {
-        if (car.s >= stopS - 1) {
+        // Ask to go in once within comfortable braking distance of the stop
+        // line, so a car that may go keeps its speed through the junction.
+        // Only the front car of the lane asks, or one following a car that
+        // is already going through, so a car queued behind never holds the box.
+        const front = !laneAhead || laneAhead.permit === j.node;
+        if (front && car.s >= stopS - Math.max(2, car.v * HEADWAY + car.v * car.v / (2 * DECEL_COMFORT) + 6)) {
           if (car.waitingAt !== j.node) { car.waitingAt = j.node; car.arrived = simTime; car.approach = piece.key; }
-          if (canEnter(car, j, piece.key, car.pieces[i + 1], lanes, driving)) {
+          if (canEnter(car, j, piece.key, car.pieces[i + 1], lanes, driving, stopS - car.s)) {
             car.permit = j.node; car.box = j.node; car.boxFrom = piece.key; car.boxExit = car.pieces[i + 1].key;
             car.waitingAt = null;
             j.lastMove = simTime;

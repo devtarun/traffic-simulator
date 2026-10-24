@@ -10,6 +10,8 @@ function load() {
     last = s.last;
     if (s.view) Object.assign(view, s.view); // older saves have no view
     junctionize(); // older saves may have roads crossing without a junction
+    // Signals: [position key, green seconds] pairs; older saves have none
+    (s.lights || []).forEach(([k, green]) => lights.set(k, { green, start: 0 }));
   } catch (err) {
     console.warn('Could not load saved canvas', err);
   }
@@ -18,7 +20,7 @@ function load() {
 const saveBtn = document.getElementById('save');
 saveBtn.onclick = () => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, lines, last, view }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, lines, last, view, lights: [...lights].map(([k, l]) => [k, l.green]) }));
     saveBtn.textContent = 'Saved';
   } catch (err) {
     console.warn('Could not save canvas', err);

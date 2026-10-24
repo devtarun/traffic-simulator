@@ -70,6 +70,10 @@ function layout() {
 let sceneKey = '', scene = { boxes: [], trees: [] };
 function getScene() {
   const key = JSON.stringify([points, lines]);
-  if (key !== sceneKey) { sceneKey = key; scene = layout(); traffic = makeTraffic(scene); selectedCar = selectedBox = null; }
+  if (key !== sceneKey) { sceneKey = key; scene = layout(); traffic = makeTraffic(scene); selectedCar = selectedBox = selectedJunction = null;
+    // Drop signals whose junction is gone
+    const keep = new Set([...traffic.junctions.keys()].map(posKey));
+    [...lights.keys()].forEach(k => { if (!keep.has(k)) lights.delete(k); });
+  }
   return scene;
 }

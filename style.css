@@ -19,6 +19,31 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #banner[hidden] { display: none; }
 #banner.gridlock { background: #d6281e; }
 
+/* Inspection panel (bottom left) for a selected intersection or road */
+.panel {
+  position: fixed; left: 12px; bottom: 12px; width: 240px; padding: 10px 12px 12px;
+  font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; color: #222;
+  background: rgba(255, 255, 255, 0.96); border: 1px solid #ccc; border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.panel[hidden] { display: none; }
+.panel-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.panel-close {
+  position: absolute; top: 6px; right: 8px; border: 0; background: none;
+  font-size: 18px; line-height: 1; color: #777; cursor: pointer;
+}
+.panel .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; }
+.panel .row > span { color: #666; }
+.panel .slider input { flex: 1; min-width: 0; }
+.panel button[data-a] {
+  margin-top: 8px; width: 100%; padding: 6px; font: inherit; cursor: pointer;
+  border: 1px solid #ccc; border-radius: 6px; background: #fafafa;
+}
+.panel button[data-a]:hover { background: #eee; }
+.panel .ok { color: #1f8a3a; } .panel .warn { color: #c77b00; } .panel .bad { color: #d6281e; }
+.lamp { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #999; vertical-align: -1px; }
+.lamp.green { background: #2fbf4f; } .lamp.amber { background: #ffb020; } .lamp.red { background: #ff3b30; }
+
 /* Right-click road type menu */
 .menu {
   position: fixed; min-width: 140px; padding: 4px;

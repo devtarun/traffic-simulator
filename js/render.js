@@ -17,7 +17,15 @@ function render() {
   boxes.forEach(b => (b.office ? office(b) : house(b)));
   trees.forEach(tree);
   roads(ctx, lines.map(([a, b, lanes]) => [points[a], points[b], lanes]));
+  drawLights(ctx, traffic);
   drawQueues(ctx, traffic);
+  // Selected junction: a light blue ring around its box
+  const sj = selectedJunction !== null ? traffic.junctions.get(selectedJunction) : null;
+  if (sj) {
+    ctx.strokeStyle = 'rgba(90, 190, 255, 0.95)';
+    ctx.lineWidth = 3 / view.scale;
+    ctx.beginPath(); ctx.arc(points[sj.node].x, points[sj.node].y, sj.clear + 6, 0, Math.PI * 2); ctx.stroke();
+  }
   // While paused: the selected box's outline, and the remaining routes of the
   // shown cars (the selected car, or all cars driving to the selected box),
   // under the cars: light blue lines from each car to its destination's door,

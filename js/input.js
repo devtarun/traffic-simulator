@@ -111,8 +111,9 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   } else {
-    // While paused, a hand cursor over a car or box shows it can be clicked
-    canvas.style.cursor = paused && (carAt(pos(e)) || boxAt(pos(e))) ? 'pointer' : '';
+    // While paused, a hand cursor over a car, junction or box shows it can be clicked
+    const w = pos(e), k = hitTest(w);
+    canvas.style.cursor = paused && (carAt(w) || (k !== null && traffic.junctions.has(k)) || boxAt(w)) ? 'pointer' : '';
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
@@ -129,8 +130,19 @@ canvas.addEventListener('pointerup', e => {
   // point; a car wins over the box under it. Clicking anywhere else
   // deselects and carries on as usual.
   if (paused) {
-    selectedCar = carAt(pos(e));
-    selectedBox = selectedCar ? null : boxAt(pos(e));
+    const w = pos(e);
+    selectedCar = carAt(w);
+    selectedBox = null;
+    selectedJunction = null;
+    // A junction (3+ roads): cycle its signal (none <-> timed) and select it
+    // to show its panel
+    const k = selectedCar ? null : hitTest(w);
+    if (k !== null && traffic.junctions.has(k)) {
+      toggleLight(k);
+      selectedJunction = k;
+      render(); return;
+    }
+    selectedBox = selectedCar ? null : boxAt(w);
     if (selectedCar || selectedBox) { render(); return; }
   }
   let { p, i, split } = target(pos(e));
@@ -201,5 +213,6 @@ snapBtn.onclick = () => {
 
 document.getElementById('reset').onclick = () => {
   points.length = 0; lines.length = 0; last = null;
+  lights.clear();
   render();
 };

@@ -14,6 +14,7 @@ function frame(now) {
   if (!paused) stepSim(traffic, dt);
   render();
   updateBanner(traffic);
+  updatePanel(traffic);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
