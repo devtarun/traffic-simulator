@@ -5,6 +5,8 @@
 // shuttles between it and offices it can reach, pausing inside each building.
 
 const CAR_RADIUS = 3;
+const CARS_PER_HOUSE = 2;
+const MAX_CARS = 250;
 const CAR_COLORS = ['#e63946', '#f1faee', '#ffb703', '#219ebc', '#8ecae6', '#fb8500', '#2a9d8f', '#ffffff'];
 let traffic = { adj: [], comp: [], cars: [] };
 
@@ -29,7 +31,7 @@ function makeTraffic({ boxes }) {
     home.reach = offices.filter(o => comp[lines[o.seg][0]] === comp[lines[home.seg][0]]);
   });
   const homes = houses.filter(h => h.reach.length);
-  const count = Math.min(80, Math.ceil(homes.length * 0.7));
+  const count = Math.min(MAX_CARS, Math.ceil(homes.length * CARS_PER_HOUSE));
   for (let i = 0; i < count; i++) {
     const home = homes[i % homes.length];
     const car = {
@@ -37,9 +39,9 @@ function makeTraffic({ boxes }) {
       color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
     };
     depart(t, car);
-    // Start some cars mid-trip and the rest at home, so traffic starts at once but staggered
-    if (Math.random() < 0.6) car.s = Math.random() * car.len;
-    else { car.path = null; car.wait = Math.random() * 4; car.to = null; }
+    // Start most cars mid-trip and the rest at home, so traffic starts at once but staggered
+    if (Math.random() < 0.8) car.s = Math.random() * car.len;
+    else { car.path = null; car.wait = Math.random() * 3; car.to = null; }
     t.cars.push(car);
   }
   return t;
@@ -50,7 +52,7 @@ function makeTraffic({ boxes }) {
 function depart(t, car) {
   const to = car.at.office ? car.home : car.home.reach[Math.floor(Math.random() * car.home.reach.length)];
   car.to = to;
-  car.path = route(t, car.at, to);
+  car.path = route(t, car.at, to, Math.floor(Math.random() * LANES));
   car.cum = [0];
   for (let i = 1; i < car.path.length; i++) {
     const a = car.path[i - 1], b = car.path[i];
@@ -68,8 +70,9 @@ function roadPoint(b) {
 }
 
 // Path from building `from` to building `to`: out of the driveway, along the
-// shortest route through the road graph in the car's own lane, and in to `to`
-function route(t, from, to) {
+// shortest route through the road graph in lane `lane` of the car's side
+// (0 = next to the center line), and in to `to`
+function route(t, from, to, lane) {
   const A = lines[from.seg], B = lines[to.seg];
   let center;
   if (from.seg === to.seg) center = [roadPoint(from), roadPoint(to)];
@@ -94,17 +97,17 @@ function route(t, from, to) {
   }
   // Shift each piece of the center line sideways into the car's lane; the
   // short jumps between shifted pieces are where the car turns
-  const lane = [];
+  const off = KEEP * (lane + 0.5) * LANE_W;
+  const shifted = [];
   for (let i = 1; i < center.length; i++) {
     const a = center[i - 1], b = center[i];
     const L = Math.hypot(b.x - a.x, b.y - a.y);
     if (L < 1e-6) continue;
-    const off = KEEP * ROAD_WIDTH / 4;
     const r = { x: -(b.y - a.y) / L * off, y: (b.x - a.x) / L * off };
-    lane.push({ x: a.x + r.x, y: a.y + r.y }, { x: b.x + r.x, y: b.y + r.y });
+    shifted.push({ x: a.x + r.x, y: a.y + r.y }, { x: b.x + r.x, y: b.y + r.y });
   }
   const door = b => ({ x: b.c.x - b.n.x * b.hd, y: b.c.y - b.n.y * b.hd });
-  return [door(from), ...lane, door(to)];
+  return [door(from), ...shifted, door(to)];
 }
 
 function stepCar(t, car, dt) {
@@ -117,7 +120,7 @@ function stepCar(t, car, dt) {
   if (car.s >= car.len) {
     car.at = car.to;
     car.path = null;
-    car.wait = 1 + Math.random() * (car.at.office ? 5 : 3);
+    car.wait = 0.5 + Math.random() * (car.at.office ? 3 : 1.5);
   }
 }
 

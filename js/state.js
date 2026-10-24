@@ -6,7 +6,11 @@ const STORAGE_KEY = 'canvas-state';
 const points = [];
 const lines = [];      // pairs of indices into points
 const RADIUS = 4;
-const ROAD_WIDTH = 32; // two lanes, one each way
+const ROAD_WIDTH = 48; // four lanes, two each way
+const LANES = 2;       // lanes in each direction
+// Lane width: the asphalt inside the white edge lines (ROAD_WIDTH - 7, see
+// roads()) split across both directions
+const LANE_W = (ROAD_WIDTH - 7) / (2 * LANES);
 const KEEP = 1;        // cars keep to the right (1) or the left (-1)
 const OFFICE_SHARE = 0.2; // share of boxes that are offices; the rest are houses
 const BOX_MIN = 40;    // boxes along roads are BOX_MIN to 2 × BOX_MIN wide
@@ -20,6 +24,8 @@ const view = { x: 0, y: 0, scale: 1 }; // screen = world × scale + (x, y), in C
 const MIN_ZOOM = 0.1, MAX_ZOOM = 10;
 const DRAG = 4;        // pointer must move this many px before a press pans
 let drag = null;       // in-progress press: start position, view then, moved yet
+let pointerScreen = null; // last pointer position in screen px, or null when outside
+const PAN_SPEED = 600; // WASD pan speed, in screen px per second
 
 // Pointer position in CSS px relative to the canvas
 function screenPos(e) {
@@ -27,10 +33,13 @@ function screenPos(e) {
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
+function screenToWorld(s) {
+  return { x: (s.x - view.x) / view.scale, y: (s.y - view.y) / view.scale };
+}
+
 // Pointer position in world coordinates, which points are stored in
 function pos(e) {
-  const s = screenPos(e);
-  return { x: (s.x - view.x) / view.scale, y: (s.y - view.y) / view.scale };
+  return screenToWorld(screenPos(e));
 }
 
 // HIT is in screen px, so snapping feels the same at any zoom

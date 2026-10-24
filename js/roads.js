@@ -16,18 +16,28 @@ function roads(c, segs) {
     c.strokeStyle = color;
     segs.forEach(([p, q]) => line(p, q, c));
   });
-  // Dashed center line, stopped short of the ends to keep junctions clear
+  // Markings, each a copy of the center line shifted sideways by off and
+  // stopped short of the ends to keep junctions clear: a double solid yellow
+  // line between the directions, and dashed white lines between the lanes
+  // on each side
+  const marking = (off, width, color, dash) => {
+    c.lineWidth = width;
+    c.strokeStyle = color;
+    c.setLineDash(dash);
+    segs.forEach(([p, q]) => {
+      const len = Math.hypot(q.x - p.x, q.y - p.y);
+      const t = ROAD_WIDTH / 2 / len;
+      if (t >= 0.5) return;
+      const n = { x: -(q.y - p.y) / len * off, y: (q.x - p.x) / len * off };
+      line({ x: p.x + (q.x - p.x) * t + n.x, y: p.y + (q.y - p.y) * t + n.y },
+           { x: q.x - (q.x - p.x) * t + n.x, y: q.y - (q.y - p.y) * t + n.y }, c);
+    });
+  };
   c.lineCap = 'butt';
-  c.lineWidth = 2;
-  c.strokeStyle = '#f5c518';
-  c.setLineDash([10, 10]);
-  segs.forEach(([p, q]) => {
-    const len = Math.hypot(q.x - p.x, q.y - p.y);
-    const t = ROAD_WIDTH / 2 / len;
-    if (t >= 0.5) return;
-    line({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t },
-         { x: q.x - (q.x - p.x) * t, y: q.y - (q.y - p.y) * t }, c);
-  });
+  [-1.5, 1.5].forEach(off => marking(off, 1.5, '#f5c518', []));
+  for (let k = 1; k < LANES; k++) {
+    [-1, 1].forEach(side => marking(side * k * LANE_W, 1.5, '#e8e8e8', [8, 10]));
+  }
   c.setLineDash([]);
   c.lineCap = 'butt';
   c.lineJoin = 'miter';

@@ -17,6 +17,15 @@ function remove(i) {
   else if (last > i) last--;
 }
 
+// Removes points with no roads, except last: a new chain's first point has
+// none until the next click. Highest index first, so remove()'s shifting
+// doesn't skip any.
+function prune() {
+  for (let i = points.length - 1; i >= 0; i--) {
+    if (i !== last && !lines.some(([a, b]) => a === i || b === i)) remove(i);
+  }
+}
+
 // Where a click at p lands: an existing point within HIT px if there is one,
 // otherwise, with snapping on, p moved onto the horizontal or vertical
 // through last when the road from last is within SNAP_ANGLE of it
@@ -38,7 +47,8 @@ function target(p) {
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('pointerdown', e => {
-  // Right click on a point removes it; elsewhere it ends the current chain
+  // Right click on a point removes it; elsewhere it ends the current chain.
+  // Either way, points left with no roads go too.
   if (e.button === 2) {
     const i = hitTest(pos(e));
     if (i === null) last = null;
@@ -48,6 +58,7 @@ canvas.addEventListener('pointerdown', e => {
       remove(i);
       pointer = pos(e);
     }
+    prune();
     render();
     return;
   }
@@ -67,6 +78,7 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   }
+  pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
   render();
 });
@@ -97,7 +109,32 @@ canvas.addEventListener('wheel', e => {
   pointer = target(pos(e)).p;
   render();
 }, { passive: false });
-canvas.addEventListener('pointerleave', () => { pointer = null; render(); });
+canvas.addEventListener('pointerleave', () => { pointer = null; pointerScreen = null; render(); });
+
+// WASD pans the view while held: W up, A left, S down, D right. Keys are
+// tracked here and applied each frame by panKeys(), so movement is smooth.
+// Combinations with Ctrl, Alt or Meta are left to the browser (Ctrl+S, Ctrl+W...).
+const PAN_KEYS = { KeyW: [0, 1], KeyA: [1, 0], KeyS: [0, -1], KeyD: [-1, 0] };
+const held = new Set();
+window.addEventListener('keydown', e => {
+  if (!(e.code in PAN_KEYS) || e.ctrlKey || e.altKey || e.metaKey) return;
+  e.preventDefault();
+  held.add(e.code);
+});
+window.addEventListener('keyup', e => held.delete(e.code));
+window.addEventListener('blur', () => held.clear()); // keyup is lost if focus leaves mid-press
+
+function panKeys(dt) {
+  let dx = 0, dy = 0;
+  held.forEach(k => { dx += PAN_KEYS[k][0]; dy += PAN_KEYS[k][1]; });
+  // Normalise so diagonals aren't faster; opposite keys cancel out
+  const len = Math.hypot(dx, dy);
+  if (!len) return;
+  view.x += dx / len * PAN_SPEED * dt;
+  view.y += dy / len * PAN_SPEED * dt;
+  // The world under a still pointer has moved, so the preview follows it
+  if (pointerScreen) pointer = target(screenToWorld(pointerScreen)).p;
+}
 
 const snapBtn = document.getElementById('snap');
 snapBtn.onclick = () => {
