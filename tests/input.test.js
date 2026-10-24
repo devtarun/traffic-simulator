@@ -234,6 +234,31 @@ test("the settings menu pauses while open and restores the previous state", () =
     assert.equal(app.run("game.paused"), true); // was paused before, stays paused
 });
 
+test("the help button pauses and shows the controls until closed", () => {
+    const app = loadApp();
+    const help = app.elements["help-menu"];
+    assert.equal(help.hidden, true); // hidden in index.html
+    app.run("game.paused = false");
+    app.elements.help.click();
+    assert.equal(help.hidden, false);
+    assert.equal(app.run("game.paused"), true);
+    assert.equal(app.elements.help.getAttribute("aria-expanded"), "true");
+    app.elements["help-close"].click();
+    assert.equal(help.hidden, true);
+    assert.equal(app.run("game.paused"), false);
+
+    app.elements.help.click();
+    app.windowEvent("keydown", { key: "Escape" });
+    assert.equal(help.hidden, true);
+    assert.equal(app.run("game.paused"), false);
+
+    app.run("game.paused = true");
+    app.elements.help.click();
+    app.elements.help.click(); // the button toggles it closed again
+    assert.equal(help.hidden, true);
+    assert.equal(app.run("game.paused"), true); // was paused before, stays paused
+});
+
 test("Reset clears roads and signals and closes the settings", () => {
     const app = loadApp();
     app.road(2, [100, 300], [700, 300]);

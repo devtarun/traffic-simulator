@@ -331,35 +331,52 @@ speedBtn.onclick = () => {
     speedBtn.classList.toggle("fast", game.simSpeed > 1);
 };
 
+// A pausing overlay: `menu` is a full-screen blurred backdrop, which covers
+// the canvas, toggled by `button`. The simulation pauses while it's open and
+// resumes on close if it was running. It closes on its button, `closeId`,
+// Escape, or a click on the backdrop.
+function pausingOverlay(button, menu, closeId) {
+    let pausedBefore = false;
+    const open = () => {
+        if (!menu.hidden) return;
+        pausedBefore = game.paused;
+        setPaused(true);
+        menu.hidden = false;
+        button.setAttribute("aria-expanded", "true");
+    };
+    const close = () => {
+        if (menu.hidden) return;
+        menu.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        setPaused(pausedBefore);
+    };
+    button.onclick = () => (menu.hidden ? open() : close());
+    document.getElementById(closeId).onclick = close;
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") close();
+    });
+    menu.addEventListener("click", (e) => {
+        if (e.target === menu) close();
+    });
+    return { open, close };
+}
+
 // Settings popup, opened by the gear (top right): Snap, Save, Reset and
-// Resume stacked in the middle of the screen over a blurred backdrop, which
-// covers the canvas. The simulation pauses while it's open and resumes on
-// close if it was running. It closes on Resume, Escape, Reset, or a click
-// on the backdrop.
+// Resume stacked in the middle of the screen. Reset closes it too.
 export const settingsBtn = document.getElementById("settings");
 export const settingsMenu = document.getElementById("settings-menu");
-export let pausedBeforeSettings = false;
-export function openSettings() {
-    pausedBeforeSettings = game.paused;
-    setPaused(true);
-    settingsMenu.hidden = false;
-    settingsBtn.setAttribute("aria-expanded", "true");
-}
-export function closeSettings() {
-    if (settingsMenu.hidden) return;
-    settingsMenu.hidden = true;
-    settingsBtn.setAttribute("aria-expanded", "false");
-    setPaused(pausedBeforeSettings);
-}
-settingsBtn.onclick = () =>
-    settingsMenu.hidden ? openSettings() : closeSettings();
-document.getElementById("resume").onclick = closeSettings;
-window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeSettings();
-});
-settingsMenu.addEventListener("click", (e) => {
-    if (e.target === settingsMenu) closeSettings();
-}); // the backdrop
+export const { open: openSettings, close: closeSettings } = pausingOverlay(
+    settingsBtn,
+    settingsMenu,
+    "resume",
+);
+
+// Help popup, opened by the ? (top left): the game's controls
+export const { open: openHelp, close: closeHelp } = pausingOverlay(
+    document.getElementById("help"),
+    document.getElementById("help-menu"),
+    "help-close",
+);
 
 // Mode buttons at the bottom: Road builds roads, Traffic manages and
 // inspects traffic. Switching ends any road being drawn and clears selections.

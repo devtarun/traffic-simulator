@@ -143,6 +143,29 @@ test("the settings popup pauses the simulation until Resume", async ({
     expect(await state(page, () => game.paused)).toBe(false);
 });
 
+test("the help button at the top left pauses and shows the controls", async ({
+    page,
+}) => {
+    await startFresh(page);
+    const box = await page.locator("#help").boundingBox();
+    expect(box.x).toBeLessThan(100);
+    expect(box.y).toBeLessThan(100);
+    await page.click("#help");
+    await expect(page.locator("#help-menu")).toBeVisible();
+    await expect(page.locator("#help-menu")).toContainText("Road");
+    await expect(page.locator("#help-menu")).toContainText("Traffic");
+    expect(await state(page, () => game.paused)).toBe(true);
+    await page.click("#help-close");
+    await expect(page.locator("#help-menu")).toBeHidden();
+    expect(await state(page, () => game.paused)).toBe(false);
+});
+
+test("the page has a road emoji favicon", async ({ page }) => {
+    await page.goto("/index.html");
+    const href = await page.locator('link[rel="icon"]').getAttribute("href");
+    expect(decodeURIComponent(href)).toContain("🛣️");
+});
+
 test("a saved game can be resumed after reloading", async ({ page }) => {
     await startFresh(page);
     await buildCross(page);
