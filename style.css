@@ -8,6 +8,20 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 }
 .controls button:hover { background: #eee; }
 
+/* Road / Traffic mode buttons, bottom centre */
+.modes {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 4px; padding: 4px;
+  background: rgba(255, 255, 255, 0.92); border: 1px solid #ccc; border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.modes button {
+  font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 8px 16px; border: 0; border-radius: 7px; background: none; color: #444; cursor: pointer;
+}
+.modes button:hover { background: #eee; }
+.modes button.active { background: #2f6fde; color: #fff; }
+
 /* Top banner for blocked and gridlocked intersections */
 #banner {
   position: fixed; top: 12px; left: 50%; transform: translateX(-50%);

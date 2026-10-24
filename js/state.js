@@ -21,6 +21,7 @@ let last = null;       // index of the most recently clicked point
 let pointer = null;    // current pointer position, or null when outside
 let snap = true;       // new roads snap to horizontal/vertical when close to it
 let paused = false;    // traffic simulation paused; drawing and the view still work
+let mode = 'road';     // 'road': clicks build roads; 'traffic': clicks manage and inspect traffic
 const SNAP_ANGLE = 10; // degrees either side of horizontal/vertical that snap
 const view = { x: 0, y: 0, scale: 1 }; // screen = world × scale + (x, y), in CSS px
 const MIN_ZOOM = 0.1, MAX_ZOOM = 10;

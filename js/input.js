@@ -80,6 +80,8 @@ canvas.addEventListener('pointerdown', e => {
     closeMenu();
     if (e.button !== 2) return;
   }
+  // In Traffic mode, right click just clears the selection
+  if (e.button === 2 && mode === 'traffic') { clearSelection(); render(); return; }
   // Right click on a point removes it; elsewhere it ends the current chain
   // and opens the road type menu. Either way, points left with no roads go too.
   if (e.button === 2) {
@@ -111,9 +113,9 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   } else {
-    // While paused, a hand cursor over a car, junction, road or box shows it can be clicked
+    // In Traffic mode, a hand cursor over a car, junction, road or box shows it can be clicked
     const w = pos(e), k = hitTest(w);
-    canvas.style.cursor = paused && (carAt(w) || (k !== null && traffic.junctions.has(k)) || roadUnder(w) !== null || boxAt(w)) ? 'pointer' : '';
+    canvas.style.cursor = mode === 'traffic' && (carAt(w) || (k !== null && traffic.junctions.has(k)) || roadUnder(w) !== null || boxAt(w)) ? 'pointer' : '';
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
@@ -125,15 +127,14 @@ canvas.addEventListener('pointerup', e => {
   drag = null;
   canvas.style.cursor = '';
   if (!click) return;
-  // While paused, clicking a car selects it to show its route, and clicking a
-  // box selects it to show every car driving to it, instead of adding a
-  // point; a car wins over the box under it. Clicking anywhere else
-  // deselects and carries on as usual.
-  if (paused) {
+  // Traffic mode: clicks select and manage, and never build. In priority
+  // order: a car (its route), a junction (cycle its signal, show its panel),
+  // a road (its flow), a box (every car driving to it); anywhere else
+  // deselects.
+  if (mode === 'traffic') {
     const w = pos(e);
+    clearSelection();
     selectedCar = carAt(w);
-    selectedBox = null;
-    selectedJunction = selectedRoad = null;
     // A junction (3+ roads): cycle its signal (none <-> timed) and select it
     // to show its panel
     const k = selectedCar ? null : hitTest(w);
@@ -146,7 +147,8 @@ canvas.addEventListener('pointerup', e => {
     const road = selectedCar ? null : roadUnder(w);
     if (road !== null) { selectedRoad = road; render(); return; }
     selectedBox = selectedCar ? null : boxAt(w);
-    if (selectedCar || selectedBox) { render(); return; }
+    render();
+    return;
   }
   let { p, i, split } = target(pos(e));
   if (i === null) {
@@ -205,8 +207,24 @@ const playBtn = document.getElementById('play');
 playBtn.onclick = () => {
   paused = !paused;
   playBtn.textContent = paused ? 'Play' : 'Pause';
-  if (!paused) selectedCar = selectedBox = null; // routes are only shown while paused
 };
+
+// Mode buttons at the bottom: Road builds roads, Traffic manages and
+// inspects traffic. Switching ends any road being drawn and clears selections.
+function clearSelection() { selectedCar = selectedBox = selectedJunction = selectedRoad = null; }
+function setMode(m) {
+  mode = m;
+  document.getElementById('mode-road').classList.toggle('active', m === 'road');
+  document.getElementById('mode-traffic').classList.toggle('active', m === 'traffic');
+  closeMenu();
+  clearSelection();
+  last = null;
+  prune();
+  canvas.style.cursor = '';
+  render();
+}
+document.getElementById('mode-road').onclick = () => setMode('road');
+document.getElementById('mode-traffic').onclick = () => setMode('traffic');
 
 const snapBtn = document.getElementById('snap');
 snapBtn.onclick = () => {

@@ -27,14 +27,14 @@ function render() {
     ctx.lineWidth = 3 / view.scale;
     ctx.beginPath(); ctx.arc(points[sj.node].x, points[sj.node].y, sj.clear + 6, 0, Math.PI * 2); ctx.stroke();
   }
-  // While paused: the selected box's outline, and the remaining routes of the
+  // In Traffic mode: the selected box's outline, and the remaining routes of the
   // shown cars (the selected car, or all cars driving to the selected box),
   // under the cars: light blue lines from each car to its destination's door,
   // ending in a dot. Sizes are in screen px.
-  const shown = paused ? shownCars() : [];
+  const shown = mode === 'traffic' ? shownCars() : [];
   ctx.strokeStyle = ctx.fillStyle = 'rgba(90, 190, 255, 0.9)';
   ctx.lineCap = ctx.lineJoin = 'round';
-  if (paused && selectedBox) {
+  if (mode === 'traffic' && selectedBox) {
     ctx.lineWidth = 3 / view.scale;
     poly(corners(selectedBox)); ctx.stroke();
   }
