@@ -131,13 +131,60 @@ function offsetPath(pts, off, closed) {
     });
 }
 
+const INNER_R = 10; // radius of the inner kerb at a bend, world px
+
+// How far before and after a bend's corner its curve starts along the road's
+// center line, for a road `lanes` wide turning by theta (radians): the
+// tangent length of an arc whose inner kerb has radius INNER_R, kept under
+// half of each side's length (len0, len1). Cars use it too (curveTurns() in
+// traffic.js), so their turns follow the road's curve.
+function bendTangent(lanes, theta, len0, len1) {
+    const R = roadWidth(lanes) / 2 + INNER_R;
+    return Math.min(R * Math.tan(theta / 2), 0.45 * len0, 0.45 * len1);
+}
+
+// pts with each bend's corner replaced by a curve (a quadratic Bézier with the
+// corner as control, from bendTangent() before it to the same after), so a
+// thick stroke along it has rounded inner as well as outer edges. Ends of an
+// open path stay put.
+function filletPath(pts, lanes, closed) {
+    const n = pts.length, out = [];
+    pts.forEach((p, i) => {
+        const prev = i > 0 ? pts[i - 1] : closed ? pts[n - 1] : null;
+        const next = i < n - 1 ? pts[i + 1] : closed ? pts[0] : null;
+        if (!prev || !next) return out.push(p);
+        const l0 = Math.hypot(p.x - prev.x, p.y - prev.y),
+            l1 = Math.hypot(next.x - p.x, next.y - p.y);
+        if (l0 < 1e-6 || l1 < 1e-6) return out.push(p);
+        const u0 = { x: (p.x - prev.x) / l0, y: (p.y - prev.y) / l0 },
+            u1 = { x: (next.x - p.x) / l1, y: (next.y - p.y) / l1 };
+        const theta = Math.acos(Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)));
+        if (theta < 0.05) return out.push(p);
+        const d = bendTangent(lanes, theta, l0, l1);
+        const A = { x: p.x - u0.x * d, y: p.y - u0.y * d },
+            B = { x: p.x + u1.x * d, y: p.y + u1.y * d };
+        const steps = Math.max(4, Math.ceil(theta / (Math.PI / 24)));
+        for (let q = 0; q <= steps; q++) {
+            const f = q / steps, g = 1 - f;
+            out.push({
+                x: g * g * A.x + 2 * g * f * p.x + f * f * B.x,
+                y: g * g * A.y + 2 * g * f * p.y + f * f * B.y,
+            });
+        }
+    });
+    return out;
+}
+
 // Draws segments ([p, q, lanes] triples, lanes each way) as roads on context
 // c. Segments are joined into chains first, so bends and corners draw as one
-// continuous road. Each pass is drawn for every road before the next, so
-// overlapping roads merge into clean junctions instead of one road's edge
-// cutting across another.
+// continuous road, and each chain's bends are rounded (filletPath()). Each
+// pass is drawn for every road before the next, so overlapping roads merge
+// into clean junctions instead of one road's edge cutting across another.
 function roads(c, segs) {
-    const runs = chains(segs);
+    const runs = chains(segs).map((r) => ({
+        ...r,
+        pts: filletPath(r.pts, r.lanes, r.closed),
+    }));
     c.lineCap = "round";
     c.lineJoin = "round";
     c.setLineDash([]);

@@ -410,6 +410,39 @@ function curveTurns(t, path, speed, pieces) {
         const b = (d.x * u0.y - d.y * u0.x) / cross;
         const C = { x: e0.x + u0.x * a, y: e0.y + u0.y * a };
         const j = t.junctions && t.junctions.get(turn.node);
+        const [lineIn, , laneIn] = before.key.split(":").map(Number);
+        const lanesIn = lines[lineIn][2],
+            lanesOut = lines[+after.key.split(":")[0]][2];
+        // A bend between two roads of the same type (not a junction): the road
+        // itself is rounded there (filletPath() in roads.js), so the car
+        // follows that same curve shifted sideways into its lane, exactly
+        // parallel to the road's center line
+        if (!j && lanesIn === lanesOut) {
+            const P = points[turn.node];
+            const theta = Math.acos(Math.max(-1, Math.min(1, u0.x * u1.x + u0.y * u1.y)));
+            const dc = bendTangent(lanesIn, theta, u0.L, u1.L);
+            const off = KEEP * (laneIn + 0.5) * LANE_W;
+            const A = { x: P.x - u0.x * dc, y: P.y - u0.y * dc },
+                B = { x: P.x + u1.x * dc, y: P.y + u1.y * dc };
+            const steps = Math.max(4, Math.ceil(theta / (Math.PI / 24)));
+            const lanePts = [];
+            for (let q = 0; q <= steps; q++) {
+                const f = q / steps, g = 1 - f;
+                const x = g * g * A.x + 2 * g * f * P.x + f * f * B.x,
+                    y = g * g * A.y + 2 * g * f * P.y + f * f * B.y;
+                // Tangent of the curve, and the lane's sideways shift from it
+                const dx = 2 * g * (P.x - A.x) + 2 * f * (B.x - P.x),
+                    dy = 2 * g * (P.y - A.y) + 2 * f * (B.y - P.y);
+                const L = Math.hypot(dx, dy) || 1;
+                lanePts.push({ x: x - (dy / L) * off, y: y + (dx / L) * off });
+            }
+            path.splice(k, 2, ...lanePts);
+            pieces.splice(k, 1, ...Array.from({ length: steps }, () => ({ kind: "turn", node: turn.node })));
+            speed.splice(k, 1, ...Array(steps).fill(ROAD_SPEED[1]));
+            before.tail = (before.tail || 0) + dc;
+            after.start += dc;
+            continue;
+        }
         // At a junction the curve must start inside the box, after the stop
         // line (clear before the point, plus half a car)
         const limit = j ? j.clear - CAR_LEN / 2 - 1 + a : ROAD_WIDTH / 2;
