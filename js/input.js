@@ -205,6 +205,17 @@ function panKeys(dt) {
 
 function setPaused(p) { paused = p; }
 
+// Speed button (top right, left of the gear): cycles normal → 2× → 3×
+const speedBtn = document.getElementById('speed');
+const SPEED_NAMES = { 1: 'Normal speed', 2: '2× speed', 3: '3× speed' };
+speedBtn.onclick = () => {
+  simSpeed = simSpeed % 3 + 1;
+  speedBtn.textContent = '▶'.repeat(simSpeed);
+  speedBtn.title = `${SPEED_NAMES[simSpeed]} (click for ${SPEED_NAMES[simSpeed % 3 + 1].toLowerCase()})`;
+  speedBtn.setAttribute('aria-label', 'Simulation speed: ' + SPEED_NAMES[simSpeed].toLowerCase());
+  speedBtn.classList.toggle('fast', simSpeed > 1);
+};
+
 // Settings popup, opened by the gear (top right): Snap, Save, Reset and
 // Resume stacked in the middle of the screen over a blurred backdrop, which
 // covers the canvas. The simulation pauses while it's open and resumes on

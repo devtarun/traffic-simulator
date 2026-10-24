@@ -11,7 +11,9 @@ function frame(now) {
   prevTime = now;
   panKeys(dt);
   getScene(); // rebuilds traffic if the roads changed
-  if (!paused) stepSim(traffic, dt);
+  // Faster speeds run the same step several times, rather than one bigger
+  // step, so following and junction rules stay just as accurate
+  if (!paused) for (let k = 0; k < simSpeed; k++) stepSim(traffic, dt);
   render();
   updateAlerts(traffic);
   updatePanel(traffic);
