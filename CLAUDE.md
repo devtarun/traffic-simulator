@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A canvas road editor with procedurally placed houses, offices, trees and traffic. There is no build step, package manager, linter, or test suite, and no external dependencies. Run it by opening `index.html` in a browser (or serving the folder with any static server, e.g. `npx serve .` or `python -m http.server`).
+A canvas road editor with procedurally placed houses, offices, trees and traffic. There is no build step and the page has no runtime dependencies; `package.json` only holds dev tools (Prettier, `http-server`). Run it by opening `index.html` in a browser (or `npm run dev`, or any static server).
+
+## Tests
+
+Unit tests use Node's built-in runner, with no extra dependencies: `npm test` runs `node --test "tests/**/*.test.js"`. The scripts are plain browser globals, so `tests/helpers/app.js` exports `loadApp()`, which runs every script from `index.html` (in order) in a fresh `vm` context with stand-ins for the DOM, canvas, `localStorage` and timers; `app.run('expr')` evaluates code inside it. The animation loop never runs in tests (`requestAnimationFrame` is a no-op), so tests drive the app directly (e.g. `stepSim()`). Values made inside the app belong to its context, so pass them through `plain()` before strict deep-equality checks.
 
 ## Files
 
