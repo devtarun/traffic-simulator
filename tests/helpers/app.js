@@ -145,10 +145,45 @@ function loadApp({ storage = {} } = {}) {
     for (const p of scriptPaths()) {
         vm.runInContext(fs.readFileSync(p, "utf8"), context, { filename: p });
     }
+    // Builds a road through world points ([x, y] pairs), reusing a point
+    // already at the same spot, then junctionizes like a click would
+    vm.runInContext(
+        `function __road(lanes, pts) {
+            let prev = null;
+            for (const [x, y] of pts) {
+                let i = points.findIndex((p) => p.x === x && p.y === y);
+                if (i < 0) { points.push({ x, y }); i = points.length - 1; }
+                if (prev !== null) addLine(prev, i, lanes);
+                prev = i;
+            }
+            junctionize();
+            roadsChanged();
+        }`,
+        context,
+    );
+    const run = (code) => vm.runInContext(code, context);
+    const canvas = elements.c;
+    const pointer = (type, x, y, button) =>
+        canvas.dispatch(type, {
+            button,
+            clientX: x,
+            clientY: y,
+            pointerId: 1,
+            preventDefault() {},
+        });
     return {
-        run: (code) => vm.runInContext(code, context),
+        run,
         elements,
         storage: store,
+        // road(lanes, [x, y], [x, y], ...): lanes each way (1 = 2-lane, 2 = 4-lane)
+        road: (lanes, ...pts) => run("__road")(lanes, pts),
+        // A left click (press and release in place) or a right press on the
+        // canvas at screen px (x, y), through the real pointer handlers
+        click: (x, y) => {
+            pointer("pointerdown", x, y, 0);
+            pointer("pointerup", x, y, 0);
+        },
+        rightClick: (x, y) => pointer("pointerdown", x, y, 2),
     };
 }
 
