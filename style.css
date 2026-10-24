@@ -18,6 +18,9 @@ canvas {
     display: flex;
     align-items: center;
     gap: 4px;
+    background: hsl(0deg 0% 0% / 50%);
+    border-radius: 10rem;
+    padding: 10px 30px;
 }
 .controls button {
     font:
@@ -25,7 +28,7 @@ canvas {
         -apple-system,
         "Segoe UI",
         sans-serif;
-    padding: 6px 8px;
+    padding: 6px 18px;
     color: #fff;
     background: transparent;
     border: 0;
@@ -36,7 +39,7 @@ canvas {
     font-weight: 700;
     letter-spacing: -4px;
     line-height: 30px;
-    min-width: 56px;
+    min-width: 40px;
     text-align: right;
 }
 .controls #speed:hover,
@@ -51,7 +54,12 @@ canvas {
 #speed.fast {
     color: #2f6fde;
 }
-
+.controls button:first-child {
+    padding-left: 0;
+}
+.controls button:last-child {
+    padding-right: 0;
+}
 /* Settings popup: a blurred backdrop over everything, with glossy green
    game-style buttons stacked in the middle */
 .settings {
@@ -144,6 +152,7 @@ canvas {
         0 1px 2px rgba(0, 0, 0, 0.95),
         0 0 5px rgba(0, 0, 0, 0.75),
         0 0 8px rgba(255, 255, 255, 0.85);
+    filter: invert(1);
 }
 /* Traffic + (top) and − (bottom), stacked to the height of the mode buttons */
 @media (max-width: 430px) {
