@@ -113,11 +113,20 @@ function stepSim(t, dt) {
   });
   const driving = t.cars.filter(car => car.path);
 
-  // Index cars by lane, front-most last
+  // Index cars by lane, front-most last. A car whose road and direction
+  // ('line:dir') changed since last frame has just left the old one: that's
+  // logged in t.flow for the throughput figure.
   const lanes = new Map();
+  if (!t.flow) t.flow = new Map();
   driving.forEach(car => {
     const spot = laneSpot(car);
     car.lane = spot;
+    const road = spot ? roadDir(spot.key) : null;
+    if (car.road && car.road !== road) {
+      if (!t.flow.has(car.road)) t.flow.set(car.road, []);
+      t.flow.get(car.road).push(simTime);
+    }
+    car.road = road;
     if (!spot) return;
     if (!lanes.has(spot.key)) lanes.set(spot.key, []);
     lanes.get(spot.key).push({ car, pos: spot.pos });
@@ -213,14 +222,84 @@ function stepSim(t, dt) {
   // Junction status, from how long it has been at a complete standstill: no
   // car waiting at it or inside its box has moved, and none has got in.
   // Temporary jams clear well within GRIDLOCK_TIME; deadlocks never do.
+  // Cars held at a red or amber light don't count: waiting there is normal.
   t.junctions.forEach(j => {
-    const involved = driving.filter(car => car.waitingAt === j.node || car.box === j.node);
+    const light = lightAt(j.node);
+    const involved = driving.filter(car => car.box === j.node ||
+      (car.waitingAt === j.node && (!light || lightFor(light, j, car.approach) === 'green')));
     if (!involved.length || involved.some(car => car.v > 1)) j.lastMove = simTime;
     const still = simTime - j.lastMove;
     j.blocked = still > BLOCK_TIME;
     j.gridlock = still > GRIDLOCK_TIME;
   });
   t.lanes = lanes;
+}
+
+// 'line:dir' part of a lane key: a road in one direction
+function roadDir(key) { return key.split(':').slice(0, 2).join(':'); }
+
+const FLOW_WINDOW = 60; // s of history for throughput
+
+// Live statistics for line k in direction dir:
+// - cars: on it now; stopped: of those, stopped for a moment
+// - speed: their average speed as a share of their free speed (1 when empty)
+// - flow: cars leaving it per minute over the last FLOW_WINDOW s
+// - queue: length in px of the longest run of stopped cars
+// - wait: average time the stopped cars have been stopped
+// - level: 'Free', 'Busy', 'Congested' or 'Jammed'
+function roadStats(t, k, dir) {
+  const id = k + ':' + dir;
+  const events = (t.flow && t.flow.get(id)) || [];
+  while (events.length && events[0] < simTime - FLOW_WINDOW) events.shift();
+  const span = Math.min(FLOW_WINDOW, Math.max(simTime, 1));
+  const here = [], runs = [];
+  for (let lane = 0; lane < lines[k][2]; lane++) {
+    let run = null;
+    ((t.lanes && t.lanes.get(laneKey(k, dir, lane))) || []).forEach(e => {
+      if (e.pos < 0) return; // still turning in
+      here.push(e.car);
+      if (e.car.stopped > 0.4) {
+        if (run && e.pos - run.end < CAR_LEN + MIN_GAP + 8) run.end = e.pos;
+        else runs.push(run = { start: e.pos, end: e.pos });
+      } else run = null;
+    });
+  }
+  const stopped = here.filter(c => c.stopped > 0.4);
+  const free = ROAD_SPEED[lines[k][2]];
+  const speed = here.length ? here.reduce((s, c) => s + c.v / (c.speed * free), 0) / here.length : 1;
+  const level = !here.length || speed > 0.7 ? 'Free' : speed > 0.4 ? 'Busy' : speed > 0.15 ? 'Congested' : 'Jammed';
+  return {
+    cars: here.length, stopped: stopped.length, speed, flow: events.length * 60 / span,
+    queue: runs.reduce((m, r) => Math.max(m, r.end - r.start + CAR_LEN), 0),
+    wait: stopped.length ? stopped.reduce((s, c) => s + c.stopped, 0) / stopped.length : 0,
+    level,
+  };
+}
+
+const LEVEL_COLORS = { Free: '60, 200, 90', Busy: '245, 185, 30', Congested: '245, 120, 30', Jammed: '230, 40, 30' };
+
+// Selected road: a light blue outline along both edges, and each direction's
+// lanes tinted by its congestion level (between the junctions at its ends)
+function drawRoadFlow(c, t, k) {
+  const [a, b, lanes] = lines[k];
+  const p = points[a], q = points[b], L = lineLength(k);
+  const n = { x: -(q.y - p.y) / L, y: (q.x - p.x) / L };
+  const half = roadWidth(lanes) / 2 + 2;
+  c.strokeStyle = 'rgba(90, 190, 255, 0.95)';
+  c.lineWidth = 2.5 / view.scale;
+  [-1, 1].forEach(s => line({ x: p.x + n.x * half * s, y: p.y + n.y * half * s }, { x: q.x + n.x * half * s, y: q.y + n.y * half * s }, c));
+  const clearAt = node => (t.junctions.get(node) || { clear: 0 }).clear;
+  c.lineCap = 'butt';
+  c.lineWidth = LANE_W - 1;
+  [1, -1].forEach(dir => {
+    const st = roadStats(t, k, dir);
+    c.strokeStyle = `rgba(${LEVEL_COLORS[st.level]}, 0.35)`;
+    const [from, to] = dir > 0 ? [a, b] : [b, a];
+    for (let lane = 0; lane < lanes; lane++) {
+      const key = laneKey(k, dir, lane);
+      line(lanePoint(key, clearAt(from)), lanePoint(key, L - clearAt(to)), c);
+    }
+  });
 }
 
 // Queues: a translucent red band under each run of two or more stopped cars

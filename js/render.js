@@ -19,6 +19,7 @@ function render() {
   roads(ctx, lines.map(([a, b, lanes]) => [points[a], points[b], lanes]));
   drawLights(ctx, traffic);
   drawQueues(ctx, traffic);
+  if (selectedRoad !== null && lines[selectedRoad]) drawRoadFlow(ctx, traffic, selectedRoad);
   // Selected junction: a light blue ring around its box
   const sj = selectedJunction !== null ? traffic.junctions.get(selectedJunction) : null;
   if (sj) {

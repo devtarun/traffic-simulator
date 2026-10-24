@@ -16,6 +16,19 @@ let traffic = { adj: [], comp: [], cars: [] };
 // both are cleared on play and whenever traffic is rebuilt.
 let selectedCar = null;
 let selectedBox = null;
+// Road (line index) selected by a click while paused, for its flow panel;
+// like selectedJunction it stays selected through Play
+let selectedRoad = null;
+
+// The road whose asphalt covers world point p (the nearest, if several), or null
+function roadUnder(p) {
+  let best = null, bestDist = Infinity;
+  lines.forEach(([a, b, lanes], k) => {
+    const d = pointSegDist(p, points[a], points[b]);
+    if (d <= roadWidth(lanes) / 2 && d < bestDist) { best = k; bestDist = d; }
+  });
+  return best;
+}
 const CAR_PICK = 8;    // a click within this many screen px of a car selects it
 
 // The box (house or office) containing world point p, or null

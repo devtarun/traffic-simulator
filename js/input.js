@@ -111,9 +111,9 @@ canvas.addEventListener('pointermove', e => {
     }
     if (drag.moved) { view.x = drag.view.x + dx; view.y = drag.view.y + dy; }
   } else {
-    // While paused, a hand cursor over a car, junction or box shows it can be clicked
+    // While paused, a hand cursor over a car, junction, road or box shows it can be clicked
     const w = pos(e), k = hitTest(w);
-    canvas.style.cursor = paused && (carAt(w) || (k !== null && traffic.junctions.has(k)) || boxAt(w)) ? 'pointer' : '';
+    canvas.style.cursor = paused && (carAt(w) || (k !== null && traffic.junctions.has(k)) || roadUnder(w) !== null || boxAt(w)) ? 'pointer' : '';
   }
   pointerScreen = screenPos(e);
   pointer = target(pos(e)).p;
@@ -133,7 +133,7 @@ canvas.addEventListener('pointerup', e => {
     const w = pos(e);
     selectedCar = carAt(w);
     selectedBox = null;
-    selectedJunction = null;
+    selectedJunction = selectedRoad = null;
     // A junction (3+ roads): cycle its signal (none <-> timed) and select it
     // to show its panel
     const k = selectedCar ? null : hitTest(w);
@@ -142,6 +142,9 @@ canvas.addEventListener('pointerup', e => {
       selectedJunction = k;
       render(); return;
     }
+    // A road: select it to show its traffic flow
+    const road = selectedCar ? null : roadUnder(w);
+    if (road !== null) { selectedRoad = road; render(); return; }
     selectedBox = selectedCar ? null : boxAt(w);
     if (selectedCar || selectedBox) { render(); return; }
   }
