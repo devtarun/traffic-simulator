@@ -342,9 +342,11 @@
     const dx = Math.abs(p.x - o.x), dy = Math.abs(p.y - o.y);
     const off = Math.atan2(Math.min(dx, dy), Math.max(dx, dy)) * 180 / Math.PI;
     if (off > SNAP_ANGLE) return { p, i: null };
-    return dx > dy
-      ? { p: { x: p.x, y: o.y }, i: null }
-      : { p: { x: o.x, y: p.y }, i: null };
+    const q = dx > dy ? { x: p.x, y: o.y } : { x: o.x, y: p.y };
+    // Snapping can land on or near a point the raw position missed: reuse it,
+    // rather than stacking a new point (and a duplicate road) on top of it
+    const j = hitTest(q);
+    return j !== null ? { p: points[j], i: j } : { p: q, i: null };
   }
 
   canvas.addEventListener('contextmenu', e => e.preventDefault());
