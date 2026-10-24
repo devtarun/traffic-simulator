@@ -5,7 +5,6 @@ const ctx = canvas.getContext('2d');
 const STORAGE_KEY = 'canvas-state';
 const points = [];
 const lines = [];      // [a, b, lanes]: indices into points, and lanes each way
-const RADIUS = 4;
 const LANE_W = 10.25;  // width of one lane
 const MAX_LANES = 2;   // lanes each way on the widest road type (4-lane)
 let roadLanes = 2;     // lanes each way for new roads, chosen from the right-click menu

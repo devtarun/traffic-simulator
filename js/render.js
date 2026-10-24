@@ -64,11 +64,7 @@ function render() {
     ctx.globalAlpha = 1;
     toWorld(ctx);
   }
-  // Points stay the same size on screen at any zoom
-  ctx.fillStyle = '#000';
-  points.forEach(p => {
-    ctx.beginPath(); ctx.arc(p.x, p.y, RADIUS / view.scale, 0, Math.PI * 2); ctx.fill();
-  });
+  // Points aren't drawn: they still snap, join roads and can be right-clicked
 }
 
 // Match the backing store to CSS size × devicePixelRatio so drawing stays sharp.
