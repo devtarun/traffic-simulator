@@ -160,6 +160,12 @@ function panKeys(dt) {
   if (pointerScreen) pointer = target(screenToWorld(pointerScreen)).p;
 }
 
+const playBtn = document.getElementById('play');
+playBtn.onclick = () => {
+  paused = !paused;
+  playBtn.textContent = paused ? 'Play' : 'Pause';
+};
+
 const snapBtn = document.getElementById('snap');
 snapBtn.onclick = () => {
   snap = !snap;
