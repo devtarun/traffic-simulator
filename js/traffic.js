@@ -280,3 +280,13 @@ function carPos(car) {
   const f = seg ? (car.s - car.cum[i - 1]) / seg : 0;
   return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
+
+function renderCarPos(car) {
+  if (!car.path || car.prevS === undefined) return carPos(car);
+  const s = car.prevS + (car.s - car.prevS) * renderAlpha;
+  const i = pieceAt({ ...car, s });
+  const a = car.path[i - 1], b = car.path[i];
+  const seg = car.cum[i] - car.cum[i - 1];
+  const f = seg ? (s - car.cum[i - 1]) / seg : 0;
+  return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+}

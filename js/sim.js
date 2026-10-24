@@ -98,6 +98,7 @@ function arrive(car) {
 // Advances the simulation by dt seconds
 function stepSim(t, dt) {
   simTime += dt;
+  t.cars.forEach(car => { car.prevS = car.s; car.prevHeading = car.heading || 0; });
   // Cars parked in a building count down, then set off (they wait on the
   // driveway below until the lane has room)
   t.cars.forEach(car => {
@@ -215,6 +216,15 @@ function stepSim(t, dt) {
     const ds = Math.max(0, Math.min(car.v * dt, limit - car.s));
     car.v = dt > 0 ? ds / dt : 0;
     car.s += ds;
+    const ci = pieceAt(car), ca = car.path[ci - 1], cb = car.path[ci];
+    if (ca && cb && Math.hypot(cb.x - ca.x, cb.y - ca.y) > 1e-6) {
+      const targetHeading = Math.atan2(cb.y - ca.y, cb.x - ca.x);
+      if (car.heading === undefined) car.heading = targetHeading;
+      else {
+        let turn = ((targetHeading - car.heading + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+        car.heading += Math.max(-5 * dt, Math.min(5 * dt, turn));
+      }
+    }
     car.braking = car.v < 2 || car.v < before - 0.5;
     car.stopped = car.v < 1 ? car.stopped + dt : 0;
     if (car.s >= car.len - 1e-6) arrive(car);

@@ -1,5 +1,9 @@
-// Startup and the animation loop. Loaded last, once everything else is defined.
+// Simulation timing is shared with render interpolation.
+const FIXED_DT = 1 / 120;
+let accumulator = 0;
+let renderAlpha = 0;
 
+// Startup and the animation loop. Loaded last, once everything else is defined.
 load();
 resize();
 
@@ -11,9 +15,12 @@ function frame(now) {
   prevTime = now;
   panKeys(dt);
   getScene(); // rebuilds traffic if the roads changed
-  // Faster speeds run the same step several times, rather than one bigger
-  // step, so following and junction rules stay just as accurate
-  if (!paused) for (let k = 0; k < simSpeed; k++) stepSim(traffic, dt);
+  if (paused) { accumulator = 0; renderAlpha = 1; }
+  else {
+    accumulator += dt * simSpeed;
+    while (accumulator >= FIXED_DT) { stepSim(traffic, FIXED_DT); accumulator -= FIXED_DT; }
+    renderAlpha = accumulator / FIXED_DT;
+  }
   render();
   updateAlerts(traffic);
   updatePanel(traffic);

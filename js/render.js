@@ -4,6 +4,25 @@
 // half opacity, so its stacked passes don't show through each other.
 const layer = document.createElement('canvas');
 const lctx = layer.getContext('2d');
+const sceneryLayer = document.createElement('canvas');
+const sctx = sceneryLayer.getContext('2d');
+let sceneryKey = '';
+
+function drawScenery(dpr, boxes, trees) {
+  const key = [roadsVersion, canvas.width, canvas.height, view.x, view.y, view.scale].join(':');
+  if (key === sceneryKey) return;
+  sceneryKey = key;
+  if (sceneryLayer.width !== canvas.width || sceneryLayer.height !== canvas.height) {
+    sceneryLayer.width = canvas.width; sceneryLayer.height = canvas.height;
+  }
+  sctx.setTransform(1, 0, 0, 1, 0, 0);
+  sctx.clearRect(0, 0, sceneryLayer.width, sceneryLayer.height);
+  sctx.setTransform(dpr * view.scale, 0, 0, dpr * view.scale, dpr * view.x, dpr * view.y);
+  terrain(sctx);
+  boxes.forEach(b => (b.office ? office(b, sctx) : house(b, sctx)));
+  trees.forEach(t => tree(t, sctx));
+  roads(sctx, lines.map(([a, b, lanes]) => [points[a], points[b], lanes]));
+}
 
 function render() {
   // Clear and composite in device pixels; draw everything else in world coordinates
@@ -11,12 +30,10 @@ function render() {
   const toWorld = c => c.setTransform(dpr * view.scale, 0, 0, dpr * view.scale, dpr * view.x, dpr * view.y);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  toWorld(ctx);
-  terrain(ctx);
   const { boxes, trees } = getScene();
-  boxes.forEach(b => (b.office ? office(b) : house(b)));
-  trees.forEach(tree);
-  roads(ctx, lines.map(([a, b, lanes]) => [points[a], points[b], lanes]));
+  drawScenery(dpr, boxes, trees);
+  ctx.drawImage(sceneryLayer, 0, 0);
+  toWorld(ctx);
   drawLights(ctx, traffic);
   drawQueues(ctx, traffic);
   if (selectedRoad !== null && lines[selectedRoad]) drawRoadFlow(ctx, traffic, selectedRoad);
@@ -39,7 +56,7 @@ function render() {
     poly(corners(selectedBox)); ctx.stroke();
   }
   shown.forEach(car => {
-    const rest = [carPos(car), ...car.path.slice(pieceAt(car))];
+    const rest = [renderCarPos(car), ...car.path.slice(pieceAt(car))];
     ctx.lineWidth = 3 / view.scale;
     ctx.beginPath();
     rest.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
@@ -54,7 +71,7 @@ function render() {
   ctx.strokeStyle = 'rgba(90, 190, 255, 0.9)';
   ctx.lineWidth = 2 / view.scale;
   shown.forEach(car => {
-    const p = carPos(car);
+    const p = renderCarPos(car);
     ctx.beginPath(); ctx.arc(p.x, p.y, CAR_LEN / 2 + 3 / view.scale, 0, Math.PI * 2); ctx.stroke();
   });
   if (last !== null && pointer) {
@@ -79,6 +96,7 @@ function resize() {
   canvas.height = canvas.clientHeight * dpr;
   layer.width = canvas.width;
   layer.height = canvas.height;
+  sceneryKey = '';
   render();
 }
 window.addEventListener('resize', resize);
