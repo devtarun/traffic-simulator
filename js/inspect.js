@@ -65,19 +65,28 @@ function centerOn(p) {
   render();
 }
 
-function showGridlockToast(p) {
-  const at = { x: p.x, y: p.y }; // a copy, as points can change before it's clicked
+// Shows a toast with a bold title and a smaller line under it. kind picks
+// the colour ('alert' red, 'info' dark); onClick runs when it's clicked,
+// and any click removes it.
+function showToast(title, sub, kind = 'info', onClick = null) {
   const el = document.createElement('button');
-  el.className = 'toast';
-  el.innerHTML = '<b>⚠ Gridlock</b><span>Click to view the intersection</span>';
+  el.className = 'toast ' + kind;
+  el.innerHTML = '<b></b><span></span>';
+  el.querySelector('b').textContent = title;
+  el.querySelector('span').textContent = sub;
   const dismiss = () => {
     if (el.classList.contains('gone')) return;
     el.classList.add('gone');
     setTimeout(() => el.remove(), 300); // after the fade-out
   };
-  el.onclick = () => { centerOn(at); dismiss(); };
+  el.onclick = () => { if (onClick) onClick(); dismiss(); };
   toasts.appendChild(el);
   setTimeout(dismiss, TOAST_TIME);
+}
+
+function showGridlockToast(p) {
+  const at = { x: p.x, y: p.y }; // a copy, as points can change before it's clicked
+  showToast('⚠ Gridlock', 'Click to view the intersection', 'alert', () => centerOn(at));
 }
 
 // Shows, hides, rebuilds or refreshes the panel to match the selection

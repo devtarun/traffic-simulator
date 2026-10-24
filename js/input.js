@@ -254,6 +254,19 @@ function setMode(m) {
   canvas.style.cursor = '';
   render();
 }
+// Traffic − / +: change the number of cars by 10% of normal, with a toast
+function adjustTraffic(delta) {
+  const more = delta > 0;
+  if (changeTraffic(traffic, delta)) {
+    showToast(`Traffic ${more ? 'increased' : 'decreased'} by 10%`,
+      `Now ${Math.round(trafficLevel * 100)}% of normal · ${traffic.cars.length} cars`);
+  } else {
+    showToast(`Traffic is already at its ${more ? 'maximum' : 'minimum'}`, `${Math.round(trafficLevel * 100)}% of normal`);
+  }
+}
+document.getElementById('traffic-less').onclick = () => adjustTraffic(-TRAFFIC_STEP);
+document.getElementById('traffic-more').onclick = () => adjustTraffic(TRAFFIC_STEP);
+
 document.getElementById('mode-road').onclick = () => setMode('road');
 document.getElementById('mode-traffic').onclick = () => setMode('traffic');
 

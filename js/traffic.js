@@ -79,14 +79,13 @@ function makeTraffic({ boxes }) {
     home.reach = offices.filter(o => comp[lines[o.seg][0]] === comp[lines[home.seg][0]]);
   });
   const homes = houses.filter(h => h.reach.length);
-  const count = Math.min(MAX_CARS, Math.ceil(homes.length * CARS_PER_HOUSE));
+  t.homes = homes;
+  // The normal number of cars for this map; trafficLevel scales it
+  t.baseCount = Math.min(MAX_CARS, Math.ceil(homes.length * CARS_PER_HOUSE));
+  const count = Math.round(t.baseCount * trafficLevel);
   const placed = new Map(); // lane key -> positions of cars started mid-trip on it
   for (let i = 0; i < count; i++) {
-    const home = homes[i % homes.length];
-    const car = {
-      home, at: home, speed: 35 + Math.random() * 30, wait: 0, v: 0, stopped: 0,
-      color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
-    };
+    const car = newCar(homes[i % homes.length]);
     depart(t, car);
     // Start most cars mid-trip and the rest at home, so traffic starts at once
     // but staggered. A car only starts mid-trip on a road stretch with room
@@ -110,6 +109,41 @@ function makeTraffic({ boxes }) {
     t.cars.push(car);
   }
   return t;
+}
+
+function newCar(home) {
+  return {
+    home, at: home, speed: 35 + Math.random() * 30, wait: 0, v: 0, stopped: 0, path: null,
+    color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+  };
+}
+
+// Traffic level: a multiplier on the normal number of cars, set by the
+// Traffic − / + buttons in steps of TRAFFIC_STEP, kept when traffic rebuilds
+const TRAFFIC_STEP = 0.1, TRAFFIC_MIN = 0.1, TRAFFIC_MAX = 3;
+let trafficLevel = 1;
+
+// Changes the traffic level by delta (clamped) and adds or removes cars to
+// match: new cars start at random homes and set off within a few seconds;
+// cars are removed parked ones first, then from the road. Returns whether
+// the level changed.
+function changeTraffic(t, delta) {
+  const level = Math.round(Math.min(TRAFFIC_MAX, Math.max(TRAFFIC_MIN, trafficLevel + delta)) * 10) / 10;
+  if (level === trafficLevel) return false;
+  trafficLevel = level;
+  const want = Math.round((t.baseCount || 0) * trafficLevel);
+  while (t.cars.length < want && t.homes && t.homes.length) {
+    const car = newCar(t.homes[Math.floor(Math.random() * t.homes.length)]);
+    car.wait = Math.random() * 3;
+    t.cars.push(car);
+  }
+  if (t.cars.length > want) {
+    const parked = t.cars.filter(c => !c.path), driving = t.cars.filter(c => c.path);
+    const keep = [...parked, ...driving].slice(t.cars.length - want);
+    t.cars = t.cars.filter(c => keep.includes(c));
+    if (selectedCar && !t.cars.includes(selectedCar)) selectedCar = null;
+  }
+  return true;
 }
 
 // Sends car from the building it's at to its next stop: home if it's at an
