@@ -7,7 +7,9 @@
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
+        <!-- state.js, input.js, and render.js use this canvas as the main view. -->
         <canvas id="c"></canvas>
+        <!-- input.js wires the speed, settings, Road/Traffic, and traffic-count controls. -->
         <div class="controls">
             <button
                 id="speed"
@@ -24,41 +26,38 @@
             >
                 ⚙
             </button>
-            <div class="modes" aria-label="Canvas controls">
-                <button
-                    id="mode-road"
-                    class="mode-button active"
-                    aria-pressed="true"
-                    title="Build roads"
-                >
-                    <span class="mode-icon">🛣️</span>Road
-                </button>
-                <button
-                    id="mode-traffic"
-                    class="mode-button"
-                    aria-pressed="false"
-                    title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes"
-                >
-                    <span class="mode-icon">🚦</span>Traffic
-                </button>
-                <span class="traffic-adjust">
-                    <button
-                        id="traffic-more"
-                        title="More traffic (+10%)"
-                        aria-label="Increase traffic by 10%"
-                    >
-                        <span aria-hidden="true">+</span>
-                    </button>
-                    <button
-                        id="traffic-less"
-                        title="Less traffic (−10%)"
-                        aria-label="Decrease traffic by 10%"
-                    >
-                        <span aria-hidden="true">−</span>
-                    </button>
-                </span>
-            </div>
+            <button
+                id="mode-road"
+                class="mode-button active"
+                aria-pressed="true"
+                title="Build roads"
+            >
+                🛣️
+            </button>
+            <button
+                id="mode-traffic"
+                class="mode-button"
+                aria-pressed="false"
+                title="Manage traffic: click junctions for lights, roads for flow, cars and buildings for routes"
+            >
+                🚦
+            </button>
+            <button
+                id="traffic-more"
+                title="More traffic (+10%)"
+                aria-label="Increase traffic by 10%"
+            >
+                &plus;
+            </button>
+            <button
+                id="traffic-less"
+                title="Less traffic (−10%)"
+                aria-label="Decrease traffic by 10%"
+            >
+                &minus;
+            </button>
         </div>
+        <!-- input.js opens/closes this menu and handles each settings action. -->
         <div id="settings-menu" class="settings" hidden>
             <div class="settings-stack" role="dialog" aria-label="Settings">
                 <button id="snap">Snap: on</button>
@@ -67,12 +66,15 @@
                 <button id="resume">Resume</button>
             </div>
         </div>
+        <!-- inspect.js appends and dismisses traffic alert toasts here. -->
         <div id="toasts"></div>
+        <!-- inspect.js fills this panel with junction or road details. -->
         <div id="panel" class="panel" hidden>
             <button class="panel-close" aria-label="Close">×</button>
             <div class="panel-title"></div>
             <div class="panel-body"></div>
         </div>
+        <!-- input.js opens this menu and applies the selected road lane count. -->
         <div id="road-menu" class="menu" hidden>
             <div class="menu-title">New roads</div>
             <button data-lanes="1">2-lane road</button>
@@ -80,8 +82,8 @@
         </div>
 
         <!-- Plain scripts sharing one global scope, not modules, so the page still
-     works opened straight from disk (file://). Order matters: main.js runs
-     the startup code and must come last. -->
+        works opened straight from disk (file://). Order matters: main.js runs
+        the startup code and must come last. -->
         <script src="js/state.js"></script>
         <script src="js/geometry.js"></script>
         <script src="js/terrain.js"></script>
