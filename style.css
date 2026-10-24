@@ -8,6 +8,17 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 }
 .controls button:hover { background: #eee; }
 
+/* Top banner for blocked and gridlocked intersections */
+#banner {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  padding: 6px 14px; border-radius: 6px;
+  font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; color: #fff;
+  background: #e0951a; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+#banner[hidden] { display: none; }
+#banner.gridlock { background: #d6281e; }
+
 /* Right-click road type menu */
 .menu {
   position: fixed; min-width: 140px; padding: 4px;

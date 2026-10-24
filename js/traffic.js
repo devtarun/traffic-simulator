@@ -45,11 +45,11 @@ function carAt(p) {
 }
 
 function makeTraffic({ boxes }) {
-  // adj[i]: [neighbour, length, lanes each way] for each road at point i
+  // adj[i]: [neighbour, length, lanes each way, line index] for each road at point i
   const adj = points.map(() => []);
-  lines.forEach(([a, b, lanes]) => {
+  lines.forEach(([a, b, lanes], k) => {
     const d = Math.hypot(points[a].x - points[b].x, points[a].y - points[b].y);
-    adj[a].push([b, d, lanes]); adj[b].push([a, d, lanes]);
+    adj[a].push([b, d, lanes, k]); adj[b].push([a, d, lanes, k]);
   });
   // Connected components, so cars only head for offices they can reach
   const comp = points.map(() => -1);
@@ -59,7 +59,7 @@ function makeTraffic({ boxes }) {
     comp[s] = s;
     while (stack.length) adj[stack.pop()].forEach(([v]) => { if (comp[v] === -1) { comp[v] = s; stack.push(v); } });
   });
-  const t = { adj, comp, cars: [] };
+  const t = { adj, comp, cars: [], junctions: makeJunctions(adj) };
   const offices = boxes.filter(b => b.office);
   const houses = boxes.filter(b => !b.office);
   houses.forEach(home => {
@@ -67,16 +67,33 @@ function makeTraffic({ boxes }) {
   });
   const homes = houses.filter(h => h.reach.length);
   const count = Math.min(MAX_CARS, Math.ceil(homes.length * CARS_PER_HOUSE));
+  const placed = new Map(); // lane key -> positions of cars started mid-trip on it
   for (let i = 0; i < count; i++) {
     const home = homes[i % homes.length];
     const car = {
-      home, at: home, speed: 35 + Math.random() * 30, wait: 0,
+      home, at: home, speed: 35 + Math.random() * 30, wait: 0, v: 0, stopped: 0,
       color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
     };
     depart(t, car);
-    // Start most cars mid-trip and the rest at home, so traffic starts at once but staggered
-    if (Math.random() < 0.8) car.s = Math.random() * car.len;
-    else { car.path = null; car.wait = Math.random() * 3; car.to = null; }
+    // Start most cars mid-trip and the rest at home, so traffic starts at once
+    // but staggered. A car only starts mid-trip on a road stretch with room
+    // in its lane, away from the road's ends (so never inside a junction);
+    // otherwise it starts at home too.
+    let spot = null;
+    if (Math.random() < 0.8) {
+      car.s = Math.random() * car.len;
+      const piece = car.pieces[pieceAt(car) - 1];
+      spot = piece.kind === 'road' ? laneSpot(car) : null;
+      if (spot) {
+        const L = lineLength(+spot.key.split(':')[0]);
+        if (spot.pos < ROAD_WIDTH || spot.pos > L - ROAD_WIDTH) spot = null;
+      }
+      if (spot && (placed.get(spot.key) || []).some(p => Math.abs(p - spot.pos) < CAR_LEN + MIN_GAP + 2)) spot = null;
+    }
+    if (spot) {
+      if (!placed.has(spot.key)) placed.set(spot.key, []);
+      placed.get(spot.key).push(spot.pos);
+    } else { car.path = null; car.wait = Math.random() * 3; car.to = null; }
     t.cars.push(car);
   }
   return t;
@@ -88,7 +105,8 @@ function depart(t, car) {
   const to = car.at.office ? car.home : car.home.reach[Math.floor(Math.random() * car.home.reach.length)];
   car.to = to;
   // The lane is clamped per road, so on 2-lane roads every car uses lane 0
-  ({ path: car.path, speed: car.pieceSpeed } = route(t, car.at, to, Math.floor(Math.random() * MAX_LANES)));
+  ({ path: car.path, speed: car.pieceSpeed, pieces: car.pieces } = route(t, car.at, to, Math.floor(Math.random() * MAX_LANES)));
+  car.permit = car.box = car.waitingAt = null;
   car.cum = [0];
   for (let i = 1; i < car.path.length; i++) {
     const a = car.path[i - 1], b = car.path[i];
@@ -105,18 +123,33 @@ function roadPoint(b) {
   return { x: p.x + (q.x - p.x) * b.along / L, y: p.y + (q.y - p.y) * b.along / L };
 }
 
+function lineLength(k) {
+  const [a, b] = lines[k];
+  return Math.hypot(points[b].x - points[a].x, points[b].y - points[a].y);
+}
+
 // Route from building `from` to building `to`: out of the driveway, along the
 // shortest route through the road graph in lane `lane` of the car's side
 // (0 = next to the center line, clamped to each road's lanes), and in to `to`.
-// Returns the path's points, and speed[i], the ROAD_SPEED multiplier for the
-// piece from path[i] to path[i + 1].
+// Returns:
+// - path: the points to drive through
+// - speed[i]: the ROAD_SPEED multiplier for the piece from path[i] to path[i + 1]
+// - pieces[i]: what that piece is: { kind: 'drive' } for a driveway,
+//   { kind: 'turn', node } for the join at a point, or { kind: 'road', key,
+//   start } for a stretch of lane. key names the lane (line:dir:lane, see
+//   laneKey()); start is how far along the lane, in travel direction, the
+//   stretch begins.
 function route(t, from, to, lane) {
   const A = lines[from.seg], B = lines[to.seg];
-  // center: the route along road center lines; lanes[i]: lanes each way on
-  // the road from center[i] to center[i + 1]
-  let center, lanes;
-  if (from.seg === to.seg) { center = [roadPoint(from), roadPoint(to)]; lanes = [A[2]]; }
-  else {
+  // center: the route along road center lines; info[i]: the road from
+  // center[i] to center[i + 1] (line, travel dir, where it starts along the
+  // line in travel direction, and the point it ends at, or -1 at a building)
+  let center, info;
+  if (from.seg === to.seg) {
+    center = [roadPoint(from), roadPoint(to)];
+    const dir = to.along >= from.along ? 1 : -1;
+    info = [{ line: from.seg, dir, start: dir > 0 ? from.along : lineLength(from.seg) - from.along, end: -1 }];
+  } else {
     // Dijkstra seeded with the distances from `from` to both ends of its line
     const LA = Math.hypot(points[A[1]].x - points[A[0]].x, points[A[1]].y - points[A[0]].y);
     const LB = Math.hypot(points[B[1]].x - points[B[0]].x, points[B[1]].y - points[B[0]].y);
@@ -134,26 +167,56 @@ function route(t, from, to, lane) {
     const nodes = [];
     for (let i = end; i !== -1; i = prev[i]) nodes.unshift(i);
     center = [roadPoint(from), ...nodes.map(i => points[i]), roadPoint(to)];
-    const between = nodes.slice(1).map((v, k) => t.adj[nodes[k]].find(([w]) => w === v)[2]);
-    lanes = [A[2], ...between, B[2]];
+    const first = nodes[0], lastNode = nodes[nodes.length - 1];
+    const dirA = first === A[1] ? 1 : -1;
+    info = [
+      { line: from.seg, dir: dirA, start: dirA > 0 ? from.along : lineLength(from.seg) - from.along, end: first },
+      ...nodes.slice(1).map((v, k) => {
+        const line = t.adj[nodes[k]].find(([w]) => w === v)[3];
+        return { line, dir: lines[line][0] === nodes[k] ? 1 : -1, start: 0, end: v };
+      }),
+      { line: to.seg, dir: lastNode === B[0] ? 1 : -1, start: 0, end: -1 },
+    ];
   }
   // Shift each piece of the center line sideways into the car's lane. The
   // driveways and the short joins between shifted pieces (the turns) go at
   // the base speed; each shifted piece goes at its road's speed.
   const door = b => ({ x: b.c.x - b.n.x * b.hd, y: b.c.y - b.n.y * b.hd });
-  const path = [door(from)], speed = [];
+  const path = [door(from)], speed = [], pieces = [];
+  let prevEnd = null;
   for (let i = 1; i < center.length; i++) {
     const a = center[i - 1], b = center[i];
     const L = Math.hypot(b.x - a.x, b.y - a.y);
-    if (L < 1e-6) continue;
-    const off = KEEP * (Math.min(lane, lanes[i - 1] - 1) + 0.5) * LANE_W;
+    const { line, dir, start, end } = info[i - 1];
+    if (L < 1e-6) { prevEnd = end; continue; }
+    const lanes = lines[line][2], l = Math.min(lane, lanes - 1);
+    const off = KEEP * (l + 0.5) * LANE_W;
     const r = { x: -(b.y - a.y) / L * off, y: (b.x - a.x) / L * off };
     path.push({ x: a.x + r.x, y: a.y + r.y }, { x: b.x + r.x, y: b.y + r.y });
-    speed.push(ROAD_SPEED[1], ROAD_SPEED[lanes[i - 1]]);
+    speed.push(ROAD_SPEED[1], ROAD_SPEED[lanes]);
+    pieces.push(prevEnd === null ? { kind: 'drive' } : { kind: 'turn', node: prevEnd },
+      { kind: 'road', key: laneKey(line, dir, l), start, end });
+    prevEnd = end;
   }
   path.push(door(to));
   speed.push(ROAD_SPEED[1]);
-  return { path, speed };
+  pieces.push({ kind: 'drive' });
+  return { path, speed, pieces };
+}
+
+// Name of lane `lane` (0 = next to the center line) of line k, for travel in
+// direction dir (1 = from its first point to its second, -1 = back)
+function laneKey(k, dir, lane) { return k + ':' + dir + ':' + lane; }
+
+// World position at distance pos along a lane (in its travel direction)
+function lanePoint(key, pos) {
+  const [k, dir, lane] = key.split(':').map(Number);
+  const [a, b] = dir > 0 ? [lines[k][0], lines[k][1]] : [lines[k][1], lines[k][0]];
+  const p = points[a], q = points[b];
+  const L = Math.hypot(q.x - p.x, q.y - p.y);
+  const u = { x: (q.x - p.x) / L, y: (q.y - p.y) / L };
+  const off = KEEP * (lane + 0.5) * LANE_W;
+  return { x: p.x + u.x * pos - u.y * off, y: p.y + u.y * pos + u.x * off };
 }
 
 // Index i of the path piece the car is on, from path[i - 1] to path[i]
@@ -161,20 +224,6 @@ function pieceAt(car) {
   let i = 1;
   while (i < car.cum.length - 1 && car.cum[i] < car.s) i++;
   return i;
-}
-
-function stepCar(t, car, dt) {
-  if (car.wait > 0) {
-    car.wait -= dt;
-    if (car.wait <= 0) depart(t, car);
-    return;
-  }
-  car.s += car.speed * car.pieceSpeed[pieceAt(car) - 1] * dt;
-  if (car.s >= car.len) {
-    car.at = car.to;
-    car.path = null;
-    car.wait = 0.5 + Math.random() * (car.at.office ? 3 : 1.5);
-  }
 }
 
 function carPos(car) {

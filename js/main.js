@@ -11,8 +11,9 @@ function frame(now) {
   prevTime = now;
   panKeys(dt);
   getScene(); // rebuilds traffic if the roads changed
-  if (!paused) traffic.cars.forEach(car => stepCar(traffic, car, dt));
+  if (!paused) stepSim(traffic, dt);
   render();
+  updateBanner(traffic);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
